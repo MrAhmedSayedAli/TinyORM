@@ -1,11 +1,14 @@
 # Treat Qt's headers as system headers
-QMAKE_CXXFLAGS += -isystem $$shell_quote($$[QT_INSTALL_HEADERS]/)
+# I don't know why but on MSYS2 this line makes problem, it throws:
+# fatal error: stdlib.h: No such file or directory
+# On unix it is needed to avoid warnings from system headers, no warnings on MSYS2
+!mingw: QMAKE_CXXFLAGS += -isystem $$shell_quote($$[QT_INSTALL_HEADERS]/)
 for(module, QT) {
     equals(module, "testlib"): \
         QMAKE_CXXFLAGS += -isystem $$shell_quote($$[QT_INSTALL_HEADERS]/QtTest/)
 
     else {
-        # Capitalize a first letter, result: -isystem .../include/QtCore/
+        # Capitalize a first letter, result: -isystem <path>/include/QtCore/
         moduleList = $$split(module, )
         QMAKE_CXXFLAGS += \
             -isystem $$shell_quote($$[QT_INSTALL_HEADERS]/Qt$$upper(\
@@ -20,6 +23,7 @@ QMAKE_CXXFLAGS_WARN_ON *= \
     -Weffc++ \
     -Werror \
     -Wfatal-errors \
+    -Winvalid-pch \
     -Wcast-qual \
     -Wcast-align \
     -Woverloaded-virtual \
@@ -31,7 +35,7 @@ QMAKE_CXXFLAGS_WARN_ON *= \
     -Wdouble-promotion \
     -Wconversion \
     -Wzero-as-null-pointer-constant \
-    -Winvalid-pch \
+    -Wuninitialized \
     -pedantic \
     -pedantic-errors \
 

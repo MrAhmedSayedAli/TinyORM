@@ -1,16 +1,15 @@
 #include "orm/support/configurationoptionsparser.hpp"
 
-#include <stdexcept>
-
 #include "orm/connectors/connector.hpp"
 #include "orm/constants.hpp"
+#include "orm/exceptions/runtimeerror.hpp"
 
-using namespace Orm::Constants;
+using Orm::Constants::EQ_C;
+using Orm::Constants::options_;
+using Orm::Constants::SEMICOLON;
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Support
 {
 
@@ -22,7 +21,7 @@ QString
 ConfigurationOptionsParser::parseConfiguration(const QVariantHash &config) const
 {
     // Get options from a user configuration
-    const auto &configOptions = config.find("options").value();
+    const auto &configOptions = config.find(options_).value();
 
     // Validate options type in the connection configuration
     validateConfigOptions(configOptions);
@@ -53,16 +52,20 @@ ConfigurationOptionsParser::validateConfigOptions(const QVariant &options) const
 #endif
         && !options.canConvert<QVariantHash>()
     )
-        throw std::domain_error(
-                "The unsupported 'options' type in the connection configuration "
-                "has to be QString or QVariantHash.");
+        throw Exceptions::RuntimeError(
+                "Passed unsupported 'options' type in the connection configuration, "
+                "it has to be the QString or QVariantHash type.");
 }
 
 QVariantHash
 ConfigurationOptionsParser::prepareConfigOptions(const QVariant &options) const
 {
     // Input is already validated, so I can be sure that options key is QVariantHash
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    if (options.typeId() != QMetaType::QString)
+#else
     if (options.userType() != QMetaType::QString)
+#endif
         return options.value<QVariantHash>();
 
     // Convert to the QVariantHash
@@ -123,6 +126,5 @@ QString ConfigurationOptionsParser::joinOptions(const QVariantHash &options) con
 }
 
 } // namespace Orm::Support
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

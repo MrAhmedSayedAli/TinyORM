@@ -1,32 +1,26 @@
 #pragma once
-#ifndef INVALIDARGUMENTERROR_HPP
-#define INVALIDARGUMENTERROR_HPP
+#ifndef ORM_EXCEPTIONS_INVALIDARGUMENTERROR_HPP
+#define ORM_EXCEPTIONS_INVALIDARGUMENTERROR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
-#include <stdexcept>
-
 #include "orm/exceptions/logicerror.hpp"
-#include "orm/utils/export.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Exceptions
 {
 
-    /*! Invalid argument exception. */
-    class SHAREDLIB_EXPORT InvalidArgumentError : public LogicError
+    /*! TinyORM invalid argument exception. */
+    class InvalidArgumentError : public LogicError
     {
         /*! Inherit constructors. */
         using LogicError::LogicError;
     };
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Exceptions
 
-#endif // INVALIDARGUMENTERROR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_EXCEPTIONS_INVALIDARGUMENTERROR_HPP

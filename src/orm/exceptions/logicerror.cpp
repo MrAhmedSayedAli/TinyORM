@@ -1,9 +1,7 @@
 #include "orm/exceptions/logicerror.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Exceptions
 {
 
@@ -15,7 +13,10 @@ LogicError::LogicError(const QString &message)
     : std::logic_error(message.toUtf8().constData())
 {}
 
+LogicError::LogicError(const std::string &message)
+    : std::logic_error(message)
+{}
+
 } // namespace Orm::Exceptions
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

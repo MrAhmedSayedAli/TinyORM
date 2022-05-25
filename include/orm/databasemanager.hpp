@@ -1,21 +1,17 @@
 #pragma once
-#ifndef DATABASEMANAGER_HPP
-#define DATABASEMANAGER_HPP
+#ifndef ORM_DATABASEMANAGER_HPP
+#define ORM_DATABASEMANAGER_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
-#include <QtSql/QSqlQuery>
-
-#include "orm/configuration.hpp"
-#include "orm/connectioninterface.hpp"
 #include "orm/connectionresolverinterface.hpp"
 #include "orm/connectors/connectionfactory.hpp"
+#include "orm/support/databaseconfiguration.hpp"
+#include "orm/support/databaseconnectionsmap.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm
 {
 namespace Query
@@ -28,28 +24,38 @@ namespace Query
     {
         Q_DISABLE_COPY(DatabaseManager)
 
-        friend class DB;
-
-        using ConfigurationsType = Orm::Configuration::ConfigurationsType;
+        /*! Type for the Database Configuration. */
+        using Configuration = Orm::Support::DatabaseConfiguration;
+        /*! Type used for Database Connections map. */
+        using ConfigurationsType = Configuration::ConfigurationsType;
 
     public:
         /*! Virtual destructor. */
-        virtual ~DatabaseManager();
+        ~DatabaseManager() final;
 
-        /*! Factory method to create DatabaseManager instance and register a new connection as default connection at once. */
-        static std::unique_ptr<DatabaseManager>
+        /*! Factory method to create DatabaseManager instance and set a default connection
+            at once. */
+        static std::shared_ptr<DatabaseManager>
+        create(const QString &defaultConnection = Configuration::defaultConnectionName);
+        /*! Factory method to create DatabaseManager instance and register a new
+            connection as default connection at once. */
+        static std::shared_ptr<DatabaseManager>
         create(const QVariantHash &config,
-               const QString &connection = QLatin1String(defaultConnectionName));
-        /*! Factory method to create DatabaseManager instance and set connections at once. */
-        static std::unique_ptr<DatabaseManager>
+               const QString &connection = Configuration::defaultConnectionName);
+        /*! Factory method to create DatabaseManager instance and set connections
+            at once. */
+        static std::shared_ptr<DatabaseManager>
         create(const ConfigurationsType &configs,
-               const QString &defaultConnection = QLatin1String(defaultConnectionName));
+               const QString &defaultConnection = Configuration::defaultConnectionName);
 
         /* Proxy methods to the DatabaseConnection */
         /*! Begin a fluent query against a database table for the connection. */
         QSharedPointer<QueryBuilder>
-        table(const QString &table, const QString &as = "",
-              const QString &connection = "");
+        table(const QString &table, const QString &connection = "");
+        /*! Begin a fluent query against a database table for the connection. */
+        QSharedPointer<QueryBuilder>
+        tableAs(const QString &table, const QString &as = "",
+                const QString &connection = "");
 
         /*! Get a new query builder instance for the connection. */
         QSharedPointer<QueryBuilder> query(const QString &connection = "");
@@ -57,69 +63,101 @@ namespace Query
         QSqlQuery qtQuery(const QString &connection = "");
 
         /*! Create a new raw query expression. */
-        Query::Expression raw(const QVariant &value);
+        inline Query::Expression raw(const QVariant &value);
 
         // TODO next add support for named bindings, Using Named Bindings silverqx
         /*! Run a select statement against the database. */
         QSqlQuery
-        select(const QString &query, const QVector<QVariant> &bindings = {});
+        select(const QString &query, const QVector<QVariant> &bindings = {},
+               const QString &connection = "");
         /*! Run a select statement and return a single result. */
         QSqlQuery
-        selectOne(const QString &query, const QVector<QVariant> &bindings = {});
+        selectOne(const QString &query, const QVector<QVariant> &bindings = {},
+                  const QString &connection = "");
         /*! Run an insert statement against the database. */
         QSqlQuery
-        insert(const QString &query, const QVector<QVariant> &bindings = {});
+        insert(const QString &query, const QVector<QVariant> &bindings = {},
+               const QString &connection = "");
         /*! Run an update statement against the database. */
         std::tuple<int, QSqlQuery>
-        update(const QString &query, const QVector<QVariant> &bindings = {});
+        update(const QString &query, const QVector<QVariant> &bindings = {},
+               const QString &connection = "");
         /*! Run a delete statement against the database. */
         std::tuple<int, QSqlQuery>
-        remove(const QString &query, const QVector<QVariant> &bindings = {});
+        remove(const QString &query, const QVector<QVariant> &bindings = {},
+               const QString &connection = "");
 
         /*! Execute an SQL statement and return the boolean result and QSqlQuery. */
         QSqlQuery
-        statement(const QString &query, const QVector<QVariant> &bindings = {});
+        statement(const QString &query, const QVector<QVariant> &bindings = {},
+                  const QString &connection = "");
         /*! Run an SQL statement and get the number of rows affected. */
         std::tuple<int, QSqlQuery>
-        affectingStatement(const QString &query, const QVector<QVariant> &bindings = {});
+        affectingStatement(const QString &query, const QVector<QVariant> &bindings = {},
+                           const QString &connection = "");
 
         /*! Run a raw, unprepared query against the database. */
-        QSqlQuery unprepared(const QString &query);
+        QSqlQuery unprepared(const QString &query, const QString &connection = "");
 
         /*! Start a new database transaction. */
-        bool beginTransaction();
+        bool beginTransaction(const QString &connection = "");
         /*! Commit the active database transaction. */
-        bool commit();
+        bool commit(const QString &connection = "");
         /*! Rollback the active database transaction. */
-        bool rollBack();
+        bool rollBack(const QString &connection = "");
         /*! Start a new named transaction savepoint. */
-        bool savepoint(const QString &id);
+        bool savepoint(const QString &id, const QString &connection = "");
         /*! Start a new named transaction savepoint. */
-        bool savepoint(size_t id);
+        bool savepoint(std::size_t id, const QString &connection = "");
         /*! Rollback to a named transaction savepoint. */
-        bool rollbackToSavepoint(const QString &id);
+        bool rollbackToSavepoint(const QString &id, const QString &connection = "");
         /*! Rollback to a named transaction savepoint. */
-        bool rollbackToSavepoint(size_t id);
+        bool rollbackToSavepoint(std::size_t id, const QString &connection = "");
         /*! Get the number of active transactions. */
-        uint transactionLevel();
+        std::size_t transactionLevel(const QString &connection = "");
+
+        /*! Determine whether the database connection is currently open. */
+        bool isOpen(const QString &connection = "");
+        /*! Check database connection and show warnings when the state changed. */
+        bool pingDatabase(const QString &connection = "");
+
+        /*! Returns the database driver used to access the database connection. */
+        QSqlDriver *driver(const QString &connection = "");
 
         /* DatabaseManager */
-        /*! Obtain a database connection instance, for now it's singleton. */
-        static DatabaseManager *instance();
+        /*! Obtain a shared pointer to the DatabaseManager. */
+        static std::shared_ptr<DatabaseManager> instance();
+        /*! Obtain a reference to the DatabaseManager. */
+        static DatabaseManager &reference();
 
         /*! Get a database connection instance. */
-        ConnectionInterface &connection(const QString &name = "") override;
+        DatabaseConnection &connection(const QString &name = "") final;
+        /*! Begin a fluent query against the database on a given connection (alias for
+            the connection() method). */
+        inline DatabaseConnection &on(const QString &name);
         /*! Register a connection with the manager. */
         DatabaseManager &
         addConnection(const QVariantHash &config,
-                      const QString &name = QLatin1String(defaultConnectionName));
+                      const QString &name = Configuration::defaultConnectionName);
+        /*! Register connections with the manager. */
+        DatabaseManager &
+        addConnections(const ConfigurationsType &configs);
+        /*! Register connections with the manager and also set a default connection. */
+        DatabaseManager &
+        addConnections(const ConfigurationsType &configs,
+                       const QString &defaultConnection);
         /*! Remove the given connection from the manager. */
-        bool removeConnection(QString name = "");
+        bool removeConnection(const QString &name = "");
+        /*! Determine whether a given connection is already registered. */
+        bool containsConnection(const QString &name = "");
 
         /*! Reconnect to the given database. */
-        ConnectionInterface &reconnect(QString name = "");
+        DatabaseConnection &reconnect(const QString &name = "");
         /*! Disconnect from the given database. */
-        void disconnect(QString name = "") const;
+        void disconnect(const QString &name = "") const;
+        /*! Force connection to the database (creates physical connection), doesn't have
+            to be called before querying a database. */
+        QSqlDatabase connectEagerly(const QString &name = "");
 
         /*! Get all of the support drivers. */
         QStringList supportedDrivers() const;
@@ -127,15 +165,16 @@ namespace Query
         QStringList connectionNames() const;
         /*! Returns a list containing the names of opened connections. */
         QStringList openedConnectionNames() const;
+        /*! Get the number of registered connections. */
+        std::size_t connectionsSize() const;
 
         /*! Get the default connection name. */
-        const QString &getDefaultConnection() const override;
+        const QString &getDefaultConnection() const final;
         /*! Set the default connection name. */
-        void setDefaultConnection(const QString &defaultConnection) override;
+        void setDefaultConnection(const QString &defaultConnection) final;
+        /*! Reset the default connection name. */
+        void resetDefaultConnection() final;
 
-        // TODO duplicate, extract to some internal types silverqx
-        /*! Reconnector lambda type. */
-        using ReconnectorType = std::function<void(const DatabaseConnection &)>;
         /*! Set the database reconnector callback. */
         DatabaseManager &setReconnector(const ReconnectorType &reconnector);
 
@@ -236,9 +275,15 @@ namespace Query
         /*! The current order value for a query log record. */
         std::size_t getQueryLogOrder();
 
-        /* Others */
+        /* Getters */
         /*! Return the connection's driver name. */
         QString driverName(const QString &connection = "");
+        /*! Return connection's driver name in printable format eg. QMYSQL -> MySQL. */
+        const QString &driverNamePrintable(const QString &connection = "");
+        /*! Return the name of the connected database. */
+        const QString &databaseName(const QString &connection = "");
+        /*! Return the host name of the connected database. */
+        const QString &hostName(const QString &connection = "");
 
         /* Others */
         /*! Execute the given callback in "dry run" mode. */
@@ -247,7 +292,7 @@ namespace Query
                 const QString &connection = "");
         /*! Execute the given callback in "dry run" mode. */
         QVector<Log>
-        pretend(const std::function<void(ConnectionInterface &)> &callback,
+        pretend(const std::function<void(DatabaseConnection &)> &callback,
                 const QString &connection = "");
 
         /*! Check if any records have been modified. */
@@ -258,20 +303,22 @@ namespace Query
         /*! Reset the record modification state. */
         void forgetRecordModificationState(const QString &connection = "");
 
-    protected:
-        /*! Default connection name. */
-        static const char *defaultConnectionName;
-
+    private:
+        /*! Private constructor to create DatabaseManager instance and set a default
+            connection at once. */
         explicit DatabaseManager(
-                const QString &defaultConnection = QLatin1String(defaultConnectionName));
-
+                const QString &defaultConnection = Configuration::defaultConnectionName);
+        /*! Private constructor to create DatabaseManager instance and register a new
+            connection as default connection at once. */
         explicit DatabaseManager(
                 const QVariantHash &config,
-                const QString &name = QLatin1String(defaultConnectionName),
-                const QString &defaultConnection = QLatin1String(defaultConnectionName));
+                const QString &name = Configuration::defaultConnectionName,
+                const QString &defaultConnection = Configuration::defaultConnectionName);
+        /*! Private constructor to create DatabaseManager instance and set connections
+            at once. */
         explicit DatabaseManager(
                 const ConfigurationsType &configs,
-                const QString &defaultConnection = QLatin1String(defaultConnectionName));
+                const QString &defaultConnection = Configuration::defaultConnectionName);
 
         /*! Setup the default database connection reconnector. */
         DatabaseManager &setupDefaultReconnector();
@@ -284,38 +331,45 @@ namespace Query
         makeConnection(const QString &name);
 
         /*! Get the configuration for a connection. */
-        QVariantHash &configuration(QString name);
+        QVariantHash &configuration(const QString &name);
 
         /*! Prepare the database connection instance. */
         std::unique_ptr<DatabaseConnection>
-        configure(std::unique_ptr<DatabaseConnection> connection) const;
+        configure(std::unique_ptr<DatabaseConnection> &&connection) const;
 
-        /*! Refresh an underlying QSqlDatabase connection on a given connection. */
-        DatabaseConnection &refreshQtConnections(const QString &name);
+        /*! Refresh an underlying QSqlDatabase connection resolver on a given
+            TinyORM connection. */
+        DatabaseConnection &refreshQtConnection(const QString &name);
+
+        /*! Throw exception if DatabaseManager instance already exists. */
+        static void checkInstance();
 
         /*! The database connection factory instance. */
-        const Connectors::ConnectionFactory m_factory;
+        const Connectors::ConnectionFactory m_factory {};
         /*! Database configuration. */
-        Configuration m_config;
-        /*! The active connection instances. */
-        std::unordered_map<QString, std::unique_ptr<DatabaseConnection>> m_connections;
+        Configuration m_configuration {};
+        /*! Active database connection instances for the current thread. */
+        Support::DatabaseConnectionsMap m_connections {};
         /*! The callback to be executed to reconnect to a database. */
-        ReconnectorType m_reconnector;
+        ReconnectorType m_reconnector = nullptr;
 
-    private:
-        /*! Database Manager instance. */
-        static DatabaseManager *m_instance;
+        /*! Shared pointer to the DatabaseManager instance. */
+        static std::shared_ptr<DatabaseManager> m_instance;
     };
 
-    inline Query::Expression
+    Query::Expression
     DatabaseManager::raw(const QVariant &value)
     {
         return Query::Expression(value);
     }
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+    DatabaseConnection &DatabaseManager::on(const QString &name)
+    {
+        return connection(name);
+    }
 
-#endif // DATABASEMANAGER_HPP
+} // namespace Orm
+
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_DATABASEMANAGER_HPP

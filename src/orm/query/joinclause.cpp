@@ -1,30 +1,32 @@
 #include "orm/query/joinclause.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Query
 {
 
+// NOLINTNEXTLINE(modernize-pass-by-value)
 JoinClause::JoinClause(const Builder &query, const QString &type, const QString &table)
     : Builder(query.getConnection(), query.getGrammar())
     , m_type(type)
     , m_table(table)
 {}
 
+// NOLINTNEXTLINE(modernize-pass-by-value)
 JoinClause::JoinClause(const Builder &query, const QString &type, const Expression &table)
     : Builder(query.getConnection(), query.getGrammar())
     , m_type(type)
     , m_table(table)
 {}
 
+// NOLINTNEXTLINE(modernize-pass-by-value)
 JoinClause::JoinClause(const Builder &query, const QString &type, Expression &&table)
     : Builder(query.getConnection(), query.getGrammar())
     , m_type(type)
     , m_table(std::move(table))
 {}
 
+// NOLINTNEXTLINE(modernize-pass-by-value)
 JoinClause::JoinClause(const Builder &query, const QString &type, const JoinTable &table)
     : Builder(query.getConnection(), query.getGrammar())
     , m_type(type)
@@ -36,8 +38,8 @@ JoinClause &JoinClause::on(const QString &first, const QString &comparison,
 {
     /* On clauses can be chained, e.g.
 
-       $join->on('contacts.user_id', '=', 'users.id')
-            ->on('contacts.info_id', '=', 'info.id')
+       join.on("contacts.user_id", "=", "users.id")
+           .on("contacts.info_id", "=", "info.id")
 
        will produce the following SQL:
 
@@ -66,7 +68,6 @@ QSharedPointer<Builder> JoinClause::forSubQuery() const
     return Builder::newQuery();
 }
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Query
+
+TINYORM_END_COMMON_NAMESPACE

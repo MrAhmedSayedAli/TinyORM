@@ -1,9 +1,7 @@
 #include "orm/exceptions/runtimeerror.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Exceptions
 {
 
@@ -15,7 +13,10 @@ RuntimeError::RuntimeError(const QString &message)
     : std::runtime_error(message.toUtf8().constData())
 {}
 
+RuntimeError::RuntimeError(const std::string &message)
+    : std::runtime_error(message)
+{}
+
 } // namespace Orm::Exceptions
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

@@ -1,8 +1,11 @@
 #pragma once
-#ifndef TAGPROPERTY_HPP
-#define TAGPROPERTY_HPP
+#ifndef MODELS_TAGPROPERTY_HPP
+#define MODELS_TAGPROPERTY_HPP
 
 #include "orm/tiny/model.hpp"
+
+namespace Models
+{
 
 using Orm::Tiny::Model;
 
@@ -15,4 +18,6 @@ class TagProperty final : public Model<TagProperty>
     QString u_table {"tag_properties"};
 };
 
-#endif // TAGPROPERTY_HPP
+} // namespace Models
+
+#endif // MODELS_TAGPROPERTY_HPP

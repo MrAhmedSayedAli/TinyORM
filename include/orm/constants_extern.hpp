@@ -7,12 +7,11 @@ TINY_SYSTEM_HEADER
 
 #include <QString>
 
-#include "orm/utils/export.hpp"
+#include "orm/macros/commonnamespace.hpp"
+#include "orm/macros/export.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 /*! Namespace constains common chars and strings. */
 namespace Orm::Constants
 {
@@ -44,9 +43,64 @@ namespace Orm::Constants
     SHAREDLIB_EXPORT extern const QString DESC;
     SHAREDLIB_EXPORT extern const QString ID;
     SHAREDLIB_EXPORT extern const QString NAME;
+    SHAREDLIB_EXPORT extern const QString SIZE;
+    SHAREDLIB_EXPORT extern const QString &SIZE_;
     SHAREDLIB_EXPORT extern const QString CREATED_AT;
     SHAREDLIB_EXPORT extern const QString UPDATED_AT;
     SHAREDLIB_EXPORT extern const QString PARENTH_ONE;
+    SHAREDLIB_EXPORT extern const QString NEWLINE;
+    SHAREDLIB_EXPORT extern const QString SPACE_IN;
+    SHAREDLIB_EXPORT extern const QString NOSPACE;
+    SHAREDLIB_EXPORT extern const QString EMPTY;
+    SHAREDLIB_EXPORT extern const QString text_;
+
+    SHAREDLIB_EXPORT extern const QString QMYSQL;
+    SHAREDLIB_EXPORT extern const QString QPSQL;
+    SHAREDLIB_EXPORT extern const QString QSQLITE;
+    SHAREDLIB_EXPORT extern const QString MYSQL_;
+    SHAREDLIB_EXPORT extern const QString POSTGRESQL;
+    SHAREDLIB_EXPORT extern const QString SQLITE;
+
+    SHAREDLIB_EXPORT extern const QString driver_;
+    SHAREDLIB_EXPORT extern const QString host_;
+    SHAREDLIB_EXPORT extern const QString port_;
+    SHAREDLIB_EXPORT extern const QString database_;
+    SHAREDLIB_EXPORT extern const QString schema_;
+    SHAREDLIB_EXPORT extern const QString username_;
+    SHAREDLIB_EXPORT extern const QString password_;
+    SHAREDLIB_EXPORT extern const QString charset_;
+    SHAREDLIB_EXPORT extern const QString collation_;
+    SHAREDLIB_EXPORT extern const QString timezone_;
+    SHAREDLIB_EXPORT extern const QString prefix_;
+    SHAREDLIB_EXPORT extern const QString options_;
+    SHAREDLIB_EXPORT extern const QString strict_;
+    SHAREDLIB_EXPORT extern const QString engine_;
+    SHAREDLIB_EXPORT extern const QString dont_drop;
+
+    SHAREDLIB_EXPORT extern const QString isolation_level;
+    SHAREDLIB_EXPORT extern const QString foreign_key_constraints;
+    SHAREDLIB_EXPORT extern const QString check_database_exists;
+    SHAREDLIB_EXPORT extern const QString prefix_indexes;
+
+    SHAREDLIB_EXPORT extern const QString H127001;
+    SHAREDLIB_EXPORT extern const QString LOCALHOST;
+    SHAREDLIB_EXPORT extern const QString P3306;
+    SHAREDLIB_EXPORT extern const QString P5432;
+    SHAREDLIB_EXPORT extern const QString ROOT;
+    SHAREDLIB_EXPORT extern const QString UTC;
+    SHAREDLIB_EXPORT extern const QString LOCAL;
+    SHAREDLIB_EXPORT extern const QString SYSTEM;
+    SHAREDLIB_EXPORT extern const QString TZ00;
+    SHAREDLIB_EXPORT extern const QString PUBLIC;
+    SHAREDLIB_EXPORT extern const QString UTF8;
+    SHAREDLIB_EXPORT extern const QString UTF8MB4;
+    SHAREDLIB_EXPORT extern const QString InnoDB;
+    SHAREDLIB_EXPORT extern const QString MyISAM;
+    SHAREDLIB_EXPORT extern const QString postgres_;
+
+    SHAREDLIB_EXPORT extern const QString UTF8MB40900aici;
+    SHAREDLIB_EXPORT extern const QString UcsBasic;
+    SHAREDLIB_EXPORT extern const QString NotImplemented;
 
     // Comparison/logical/search operators
     SHAREDLIB_EXPORT extern const QString EQ;
@@ -73,8 +127,7 @@ namespace Orm::Constants
     SHAREDLIB_EXPORT extern const QString B_AND;
 
 } // namespace Orm::Constants
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE
 
 #endif // ORM_CONSTANTS_EXTERN_HPP

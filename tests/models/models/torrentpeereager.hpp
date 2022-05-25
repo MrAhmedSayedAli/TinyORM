@@ -1,10 +1,13 @@
 #pragma once
-#ifndef TORRENTPEEREAGER_HPP
-#define TORRENTPEEREAGER_HPP
+#ifndef MODELS_TORRENTPEEREAGER_HPP
+#define MODELS_TORRENTPEEREAGER_HPP
 
 #include "orm/tiny/model.hpp"
 
 #include "models/torrenteager.hpp"
+
+namespace Models
+{
 
 using Orm::Tiny::Relations::BelongsTo;
 
@@ -18,7 +21,7 @@ public:
     std::unique_ptr<BelongsTo<TorrentPeerEager, TorrentEager>>
     torrent()
     {
-        return belongsTo<TorrentEager>({}, {}, __func__);
+        return belongsTo<TorrentEager>({}, {}, static_cast<const char *>(__func__));
     }
 
 private:
@@ -36,4 +39,6 @@ private:
     };
 };
 
-#endif // TORRENTPEEREAGER_HPP
+} // namespace Models
+
+#endif // MODELS_TORRENTPEEREAGER_HPP

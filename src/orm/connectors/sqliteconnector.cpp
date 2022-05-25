@@ -4,30 +4,30 @@
 #include <QtSql/QSqlQuery>
 
 #include "orm/constants.hpp"
-#include "orm/exceptions/invalidargumenterror.hpp"
 #include "orm/exceptions/queryerror.hpp"
 #include "orm/utils/type.hpp"
 
-using namespace Orm::Constants;
+using Orm::Constants::check_database_exists;
+using Orm::Constants::database_;
+using Orm::Constants::foreign_key_constraints;
+using Orm::Constants::NAME;
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Connectors
 {
 
 ConnectionName
 SQLiteConnector::connect(const QVariantHash &config) const
 {
-    const auto name = config[NAME].value<QString>();
+    auto name = config[NAME].value<QString>();
 
     const auto options = getOptions(config);
 
     /* SQLite supports "in-memory" databases that only last as long as the owning
        connection does. These are useful for tests or for short lifetime store
        querying. In-memory databases may only have a single open connection. */
-    if (config["database"] == ":memory:") {
+    if (config[database_] == ":memory:") {
         // sqlite :memory: driver
         createConnection(name, config, options);
 
@@ -57,18 +57,19 @@ SQLiteConnector::getConnectorOptions() const
     return m_options;
 }
 
-void SQLiteConnector::parseConfigOptions(QVariantHash &) const
+void SQLiteConnector::parseConfigOptions(QVariantHash &/*unused*/) const
 {}
 
 void SQLiteConnector::configureForeignKeyConstraints(
         const QSqlDatabase &connection, const QVariantHash &config) const
 {
     // This ensures default SQLite behavior
-    if (!config.contains("foreign_key_constraints"))
+    if (!config.contains(foreign_key_constraints))
         return;
 
     const auto foreignKeyConstraints =
-            config["foreign_key_constraints"].value<bool>() ? "ON" : "OFF";
+            config[foreign_key_constraints].value<bool>() ? QStringLiteral("ON")
+                                                          : QStringLiteral("OFF");
 
     QSqlQuery query(connection);
     // FEATURE schema builder, use DatabaseConnection::statement(), to set recordsHaveBeenModied to true, foreign key constraints silverqx
@@ -81,21 +82,20 @@ void SQLiteConnector::configureForeignKeyConstraints(
 
 void SQLiteConnector::checkDatabaseExists(const QVariantHash &config) const
 {
-    const auto path = config["database"].value<QString>();
+    const auto path = config[database_].value<QString>();
 
     // Default behavior is to check database existence
     bool checkDatabaseExists = true;
-    if (const auto &configCheckDatabase = config["check_database_exists"];
+    if (const auto &configCheckDatabase = config[check_database_exists];
         configCheckDatabase.isValid() && !configCheckDatabase.isNull()
     )
-        checkDatabaseExists = config["check_database_exists"].value<bool>();
+        checkDatabaseExists = config[check_database_exists].value<bool>();
 
     if (checkDatabaseExists && !QFile::exists(path))
-        throw Exceptions::InvalidArgumentError(
+        throw Exceptions::RuntimeError(
                 QStringLiteral("SQLite Database file '%1' does not exist.").arg(path));
 }
 
 } // namespace Orm::Connectors
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

@@ -1,6 +1,6 @@
 #pragma once
-#ifndef QUERYERROR_HPP
-#define QUERYERROR_HPP
+#ifndef ORM_EXCEPTIONS_QUERYERROR_HPP
+#define ORM_EXCEPTIONS_QUERYERROR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -11,14 +11,12 @@ TINY_SYSTEM_HEADER
 
 class QSqlQuery;
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Exceptions
 {
 
-    /*! Database query exception. */
+    /*! TinyORM Database query exception. */
     class SHAREDLIB_EXPORT QueryError : public SqlError
     {
     public:
@@ -39,14 +37,13 @@ namespace Orm::Exceptions
         QString formatMessage(const char *message, const QSqlQuery &query);
 
         /*! The SQL for the query. */
-        const QString m_sql;
+        QString m_sql;
         /*! The bindings for the query. */
-        const QVector<QVariant> m_bindings;
+        QVector<QVariant> m_bindings;
     };
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Exceptions
 
-#endif // QUERYERROR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_EXCEPTIONS_QUERYERROR_HPP

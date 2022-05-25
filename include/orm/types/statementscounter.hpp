@@ -1,22 +1,23 @@
 #pragma once
-#ifndef STATEMENTSCOUNTER_HPP
-#define STATEMENTSCOUNTER_HPP
+#ifndef ORM_TYPES_STATEMENTSCOUNTER_HPP
+#define ORM_TYPES_STATEMENTSCOUNTER_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+#include "orm/macros/commonnamespace.hpp"
+
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm
 {
 namespace Types
 {
 
-    /*! Counts executed statements in a current connection. */
+    /*! Executed statements counter. */
     struct StatementsCounter
     {
+        // CUR qint64 silverqx
         /*! Normal select statements. */
         int normal = -1;
         /*! Affecting statements (UPDATE, INSERT, DELETE). */
@@ -25,13 +26,12 @@ namespace Types
         int transactional = -1;
     };
 
-} // namespace Orm::Types
+} // namespace Types
 
     using StatementsCounter = Types::StatementsCounter;
 
 } // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // STATEMENTSCOUNTER_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TYPES_STATEMENTSCOUNTER_HPP

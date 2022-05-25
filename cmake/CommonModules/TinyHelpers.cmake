@@ -9,11 +9,27 @@ function(tiny_invert_bool out_variable value)
 
 endfunction()
 
+# Convert to a boolean value
+function(tiny_to_bool out_variable value)
+
+    if(${value})
+        set(${out_variable} TRUE PARENT_SCOPE)
+    else()
+        set(${out_variable} FALSE PARENT_SCOPE)
+    endif()
+
+endfunction()
+
 # Make minimum toolchain version a requirement
 function(tiny_toolchain_requirement)
 
     set(oneValueArgs MSVC GCC CLANG)
     cmake_parse_arguments(PARSE_ARGV 0 TINY "" "${oneValueArgs}" "")
+
+    if(DEFINED TINY_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "${CMAKE_CURRENT_FUNCTION} was passed extra arguments: \
+${TINY_UNPARSED_ARGUMENTS}")
+    endif()
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS TINY_MSVC)
@@ -65,6 +81,8 @@ macro(tiny_find_package package_name)
         list(APPEND tiny_package_dependencies "${args}")
     endif()
 
+    unset(args)
+
 endmacro()
 
 # Generate find_dependency calls for the TinyORM package config file
@@ -95,14 +113,20 @@ endfunction()
 # <scope> determines the scope for the following compile definitions.
 # ENABLED lists compile definitions that will be set on <target> when option is enabled,
 # DISABLED lists definitions that will be set otherwise.
+# ADVANCED calls mark_as_advanced(<NAME>) command.
 function(target_optional_compile_definitions target scope)
 
-    set(options FEATURE)
+    set(options ADVANCED FEATURE)
     set(oneValueArgs NAME DESCRIPTION DEFAULT)
     set(multiValueArgs ENABLED DISABLED)
-    cmake_parse_arguments(PARSE_ARGV 2 TINY ${options} "${oneValueArgs}"
+    cmake_parse_arguments(PARSE_ARGV 2 TINY "${options}" "${oneValueArgs}"
         "${multiValueArgs}"
     )
+
+    if(DEFINED TINY_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "${CMAKE_CURRENT_FUNCTION} was passed extra arguments: \
+${TINY_UNPARSED_ARGUMENTS}")
+    endif()
 
     option(${TINY_NAME} "${TINY_DESCRIPTION}" ${TINY_DEFAULT})
 
@@ -114,6 +138,10 @@ function(target_optional_compile_definitions target scope)
 
     if(TINY_FEATURE)
         add_feature_info(${TINY_NAME} ${TINY_NAME} "${TINY_DESCRIPTION}")
+    endif()
+
+    if(TINY_ADVANCED)
+        mark_as_advanced(${TINY_NAME})
     endif()
 
 endfunction()
@@ -137,7 +165,12 @@ function(tiny_read_version out_version out_major out_minor out_patch out_tweak)
 
     # Arguments
     set(oneValueArgs VERSION_HEADER PREFIX HEADER_FOR)
-    cmake_parse_arguments(PARSE_ARGV 4 TINY "" "${oneValueArgs}" "")
+    cmake_parse_arguments(PARSE_ARGV 5 TINY "" "${oneValueArgs}" "")
+
+    if(DEFINED TINY_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "${CMAKE_CURRENT_FUNCTION} was passed extra arguments: \
+${TINY_UNPARSED_ARGUMENTS}")
+    endif()
 
     # Debug setup
     list(APPEND CMAKE_MESSAGE_CONTEXT VersionHeader)
@@ -220,5 +253,24 @@ function(tiny_check_unsupported_build)
         message(FATAL_ERROR "MinGW clang static build is not supported, problem with \
 inline constants :/.")
     endif()
+
+endfunction()
+
+# Print a VERBOSE message against which library is project linking
+function(tiny_print_linking_against target)
+
+    if(TINY_IS_MULTI_CONFIG)
+        return()
+    endif()
+
+    string(TOUPPER ${CMAKE_BUILD_TYPE} buildType)
+
+    if(WIN32 AND BUILD_SHARED_LIBS)
+        get_target_property(libraryFilepath ${target} IMPORTED_IMPLIB_${buildType})
+    else()
+        get_target_property(libraryFilepath ${target} IMPORTED_LOCATION_${buildType})
+    endif()
+
+    message(VERBOSE "Linking against ${target} at ${libraryFilepath}")
 
 endfunction()

@@ -1,3 +1,16 @@
+# Tom migrations
+# ---
+
+# Default migrations path as the string for the make:migration command
+# The path can be absolute or relative (to the pwd at runtime)
+# It will look like this on the cmd. line: -DTINYTOM_MIGRATIONS_DIR="<path>/<path>"
+# If the path doesn't contain a space then the \" is not needed
+# Will be stringified in the tom/application.cpp
+#DEFINES += TINYTOM_MIGRATIONS_DIR="\"database/migrations\""
+
+# Default seeders path as the string for the make:seeder command
+#DEFINES += TINYTOM_SEEDERS_DIR="\"database/seeders\""
+
 # Dependencies include and library paths
 # ---
 
@@ -11,8 +24,21 @@
 # Gentoo - emerge dev-cpp/range-v3
 # Ubuntu - apt install librange-v3-dev
 
+# ccache
+# Arch   - pacman -S ccache
+# Gentoo - emerge dev-util/ccache
+# Ubuntu - apt install ccache
+
 # MinGW
 win32-g++|win32-clang-g++ {
+    # Enable ccache wrapper
+    CONFIG *= tiny_ccache
+
+    # Includes
+    # tabulate
+    INCLUDEPATH += $$quote(C:/msys64/home/xyz/vcpkg/installed/x64-mingw-dynamic/include/)
+    QMAKE_CXXFLAGS += -isystem $$shell_quote(C:/msys64/home/xyz/vcpkg/installed/x64-mingw-dynamic/include/)
+
     # Libraries
     # MySQL C library
     # Find with the pkg-config (preferred), shared build only
@@ -44,8 +70,6 @@ else:win32-msvc {
     # Includes
     # range-v3
     INCLUDEPATH += $$quote(E:/xyz/vcpkg/installed/x64-windows/include/)
-    # boost
-#    INCLUDEPATH += $$quote(E:/c_libs/boost/boost_latest/)
 
     # Conditional dependencies
     # MySQL C library is used by TinyORM and it uses mysql_ping()
@@ -58,7 +82,7 @@ else:win32-msvc {
 else:unix {
     # Includes
     # range-v3
-    QMAKE_CXXFLAGS += -isystem $$quote(/home/xyz/vcpkg/installed/x64-linux/include/)
+    QMAKE_CXXFLAGS += -isystem $$shell_quote(/home/xyz/vcpkg/installed/x64-linux/include/)
 
     # Libraries
     # MySQL C library

@@ -1,14 +1,12 @@
 /* This file can't be included in the project, it's for a precompiled header. */
 
-#include "orm/macros/systemheader.hpp"
-TINY_SYSTEM_HEADER
-
 /* Add C includes here */
 
 #if defined __cplusplus
 /* Add C++ includes here */
 //#include <QCoreApplication>
 #include <QDateTime>
+//#include <QDebug>
 #include <QHash>
 #include <QMap>
 #include <QSharedPointer>
@@ -41,7 +39,8 @@ TINY_SYSTEM_HEADER
 //#include <thread>
 #include <tuple>
 //#include <type_traits>
-#include <typeinfo>
+//#include <typeindex>
+//#include <typeinfo>
 //#include <unordered_map>
 //#include <vector>
 #endif

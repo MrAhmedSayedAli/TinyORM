@@ -1,16 +1,15 @@
 #pragma once
-#ifndef HASCONNECTIONRESOLVER_HPP
-#define HASCONNECTIONRESOLVER_HPP
+#ifndef ORM_CONCERNS_HASCONNECTIONRESOLVER_HPP
+#define ORM_CONCERNS_HASCONNECTIONRESOLVER_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
-#include "orm/utils/export.hpp"
+#include "orm/macros/commonnamespace.hpp"
+#include "orm/macros/export.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm
 {
     class ConnectionResolverInterface;
@@ -36,10 +35,9 @@ namespace Concerns
         inline static ConnectionResolverInterface *m_resolver = nullptr;
     };
 
-} // namespace Orm::Concerns
+} // namespace Concerns
 } // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // HASCONNECTIONRESOLVER_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_CONCERNS_HASCONNECTIONRESOLVER_HPP

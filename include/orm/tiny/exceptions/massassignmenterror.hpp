@@ -1,29 +1,26 @@
 #pragma once
-#ifndef MASSASSIGNMENTERROR_HPP
-#define MASSASSIGNMENTERROR_HPP
+#ifndef ORM_TINY_EXCEPTIONS_MASSASSIGNMENTERROR_HPP
+#define ORM_TINY_EXCEPTIONS_MASSASSIGNMENTERROR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include "orm/exceptions/runtimeerror.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny::Exceptions
 {
 
     /*! Mass assignment exception. */
-    class SHAREDLIB_EXPORT MassAssignmentError : public Orm::Exceptions::RuntimeError
+    class MassAssignmentError : public Orm::Exceptions::RuntimeError
     {
         /*! Inherit constructors. */
         using Orm::Exceptions::RuntimeError::RuntimeError;
     };
 
-} // namespace Orm::Tiny
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Tiny::Exceptions
 
-#endif // MASSASSIGNMENTERROR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_EXCEPTIONS_MASSASSIGNMENTERROR_HPP

@@ -1,32 +1,23 @@
 #pragma once
-#ifndef HASRELATIONSTORE_HPP
-#define HASRELATIONSTORE_HPP
+#ifndef ORM_TINY_CONCERNS_HASRELATIONSTORE_HPP
+#define ORM_TINY_CONCERNS_HASRELATIONSTORE_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
-#include <optional>
 #include <stack>
 
-#include "orm/exceptions/runtimeerror.hpp"
+#include "orm/tiny/macros/crtpmodelwithbase.hpp"
 #include "orm/tiny/relations/relation.hpp"
-#include "orm/tiny/tinytypes.hpp"
+#include "orm/utils/type.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
-namespace Orm::Tiny
+TINYORM_BEGIN_COMMON_NAMESPACE
+
+namespace Orm::Tiny::Concerns
 {
 
-    /*! The type in which are saved relationships. */
-    template<typename ...AllRelations>
-    using RelationsType = std::variant<std::monostate,
-                                       QVector<AllRelations>...,
-                                       std::optional<AllRelations>...>;
-
-namespace Concerns
-{
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    class HasRelationships;
 
     template<typename Model>
     class QueriesRelationships;
@@ -44,11 +35,26 @@ namespace Concerns
     // FUTURE relationstore, cache results, eg. cache Relation instance and return copy of this cached Relation instance, Related parameter can be obtained from cached Relation instance silverqx
     /*! Relation store, handles mapping from a relation name to the Model's relation
         method, also calls visited method with Related parameter when needed. */
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     class HasRelationStore
     {
-        // Used by Model, all is private to not pollute user's CA in model classes
-        friend Model<Derived, AllRelations...>;
+        // To access createXyzStore(), xyzStore() getters, resetRelationStore(), ...
+        friend HasRelationships<Derived, AllRelations...>;
+
+        /*! Default constructor. */
+        inline HasRelationStore() = default;
+        /*! Default destructor. */
+        inline ~HasRelationStore() = default;
+
+        /*! Copy constructor. */
+        inline HasRelationStore(const HasRelationStore &other);
+        /*! Copy assignment operator. */
+        inline HasRelationStore &operator=(const HasRelationStore &other);
+
+        /*! Move constructor. */
+        inline HasRelationStore(HasRelationStore &&other) noexcept;
+        /*! Move assignment operator. */
+        inline HasRelationStore &operator=(HasRelationStore &&other) noexcept;
 
         /*! Type of data saved in the relation store. */
         enum struct RelationStoreType
@@ -77,14 +83,16 @@ namespace Concerns
         /*! Base class for relation stores. */
         class BaseRelationStore
         {
+            Q_DISABLE_COPY(BaseRelationStore)
+
         protected:
             /*! Constructor. */
             BaseRelationStore(HasRelationStore &hasRelationStore,
-                              const RelationStoreType storeType);
+                              RelationStoreType storeType);
 
         public:
-            /*! Virtual destructor. */
-            inline virtual ~BaseRelationStore() = default;
+            /*! Pure virtual destructor. */
+            inline virtual ~BaseRelationStore() = 0;
 
             /*! Visit the given relation. */
             void visit(const QString &relation);
@@ -93,11 +101,11 @@ namespace Concerns
                 method, an enter point of the visitation. */
             template<typename Method>
             requires std::is_member_function_pointer_v<Method>
-            void operator()(const Method method);
+            void operator()(Method method);
 
         protected:
             /*! Currently held store type. */
-            RelationStoreType getStoreType() const;
+            inline RelationStoreType getStoreType() const;
 
             /*! Reference to the parent HasRelationStore instance. */
             HasRelationStore &m_hasRelationStore;
@@ -118,10 +126,12 @@ namespace Concerns
                     HasRelationStore &hasRelationStore,
                     const Tiny::TinyBuilder<Derived> &builder,
                     QVector<Derived> &models, const WithItem &relation);
+            /*! Virtual destructor. */
+            inline virtual ~EagerRelationStore() final = default;
 
             /*! Method called after visitation. */
             template<typename Method>
-            void visited(const Method method) const;
+            void visited(Method method) const;
 
         private:
             /*! The Tiny builder instance to which the visited relation will be
@@ -144,10 +154,12 @@ namespace Concerns
             /*! Constructor. */
             explicit PushRelationStore(HasRelationStore &hasRelationStore,
                                        RelationsType<AllRelations...> &models);
+            /*! Virtual destructor. */
+            inline virtual ~PushRelationStore() final = default;
 
             /*! Method called after visitation. */
             template<typename Method>
-            void visited(const Method) const;
+            void visited(Method /*unused*/) const;
 
             /*! Models to push, the reference to the relation in m_relations hash. */
             RelationsType<AllRelations...> &m_models;
@@ -164,10 +176,12 @@ namespace Concerns
             /*! Constructor. */
             explicit TouchOwnersRelationStore(HasRelationStore &hasRelationStore,
                                               const QString &relation);
+            /*! Virtual destructor. */
+            inline virtual ~TouchOwnersRelationStore() final = default;
 
             /*! Method called after visitation. */
             template<typename Method>
-            void visited(const Method method) const;
+            void visited(Method method) const;
 
             /*! Models to touch timestamps for, the reference to the relation name/key
                 in the m_relations hash. */
@@ -182,15 +196,17 @@ namespace Concerns
 
         public:
             /*! Constructor. */
-            LazyRelationStore(HasRelationStore &hasRelationStore);
+            explicit LazyRelationStore(HasRelationStore &hasRelationStore);
+            /*! Virtual destructor. */
+            inline virtual ~LazyRelationStore() final = default;
 
             /*! Method called after visitation. */
             template<typename Method>
-            void visited(const Method method);
+            void visited(Method method);
 
             // TODO templated LazyRelationStore by Container too, QVector to Container silverqx
             /*! The result of lazy load. */
-            std::variant<QVector<Related>, std::optional<Related>> m_result = {};
+            std::variant<QVector<Related>, std::optional<Related>> m_result;
         };
 
         /*! The store to obtain the related table name for BelongsToMany relation. */
@@ -201,10 +217,12 @@ namespace Concerns
         public:
             /*! Constructor. */
             explicit BelongsToManyRelatedTableStore(HasRelationStore &hasRelationStore);
+            /*! Virtual destructor. */
+            inline virtual ~BelongsToManyRelatedTableStore() final = default;
 
             /*! Method called after visitation. */
             template<typename Method>
-            void visited(const Method);
+            void visited(Method /*unused*/);
 
             /*! The related table name result. */
             std::optional<QString> m_result = std::nullopt;
@@ -224,19 +242,22 @@ namespace Concerns
                     qint64 count, const QString &condition,
                     const std::function<
                             void(QueriesRelationshipsCallback<Related> &)> &callback,
-                    const std::optional<std::reference_wrapper<
-                                        QStringList>> relations = std::nullopt);
+                    std::optional<std::reference_wrapper<
+                            QStringList>> relations = std::nullopt);
+            /*! Virtual destructor. */
+            inline virtual ~QueriesRelationshipsStore() final = default;
 
             /*! Method called after visitation. */
             template<typename RelatedFromMethod, typename Method>
-            void visited(const Method method);
+            void visited(Method method);
 
         protected:
             /*! Store type initializer. */
             constexpr static RelationStoreType initStoreType();
 
             /*! Served store type, this class can handle two store types. */
-            thread_local constexpr static RelationStoreType STORE_TYPE = initStoreType();
+            T_THREAD_LOCAL
+            constexpr static const RelationStoreType STORE_TYPE = initStoreType();
 
         private:
             /*! The QueriesRelationships instance to which the visited relation will be
@@ -280,7 +301,7 @@ namespace Concerns
                 qint64 count, const QString &condition,
                 const std::function<
                         void(QueriesRelationshipsCallback<Related> &)> &callback,
-                const std::optional<std::reference_wrapper<
+                std::optional<std::reference_wrapper<
                         QStringList>> relations = std::nullopt);
 
         /*! Release the ownership and destroy the top relation store on the stack. */
@@ -288,35 +309,45 @@ namespace Concerns
 
         /* Getters for Relation stores */
         /*! Reference to the push store. */
-        PushRelationStore &pushStore();
+        inline PushRelationStore &pushStore();
         /*! Cont reference to the touch owners relation store. */
-        const TouchOwnersRelationStore &touchOwnersStore() const;
+        inline const TouchOwnersRelationStore &touchOwnersStore() const;
         /*! Const reference to the lazy store. */
         template<typename Related>
-        const LazyRelationStore<Related> &lazyStore() const;
+        inline const LazyRelationStore<Related> &lazyStore() const;
         /*! Reference to the BelongsToMany related table name store. */
-        const BelongsToManyRelatedTableStore &belongsToManyRelatedTableStore() const;
+        inline const BelongsToManyRelatedTableStore &
+        belongsToManyRelatedTableStore() const;
         /*! Const reference to the QueriesRelationships store. */
         template<typename Related = void>
-        const QueriesRelationshipsStore<Related> &queriesRelationshipsStore() const;
+        inline const QueriesRelationshipsStore<Related> &
+        queriesRelationshipsStore() const;
 
-        /*! Static cast this to a child's instance Model type. */
-        Model<Derived, AllRelations...> &basemodel();
-        /*! Static cast this to a child's instance Model type, const version. */
-        const Model<Derived, AllRelations...> &basemodel() const;
+        /*! Type of the template message to generate. */
+        enum struct CopyMoveTemplateType
+        {
+            COPY,
+            MOVE,
+        };
+        /*! Template message for the Q_ASSERT_X() check in copy/move constructors. */
+        static QString
+        relationStoreCopyMoveTemplate(CopyMoveTemplateType type);
 
-        /*! Static cast this to a child's instance type (CRTP). */
-        Derived &model();
-        /*! Static cast this to a child's instance type (CRTP), const version. */
-        const Derived &model() const;
+        /* Static cast this to a child's instance type (CRTP) */
+        TINY_CRTP_MODEL_WITH_BASE_DECLARATIONS
 
-        // BUG this is bad, disable Model's copy/assignment ctors if m_relationStore is not empty, or empty the m_relationStore on copy?, have to think about this 🤔 silverqx
         /*! The store where the values will be saved, before BaseRelationStore::visit()
             is called. */
-        std::stack<std::shared_ptr<BaseRelationStore>> m_relationStore = {};
+        std::stack<std::shared_ptr<BaseRelationStore>> m_relationStore;
     };
 
-    template<typename Derived, typename ...AllRelations>
+    /* BaseRelationStore */
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    HasRelationStore<Derived, AllRelations...>::BaseRelationStore
+                                              ::~BaseRelationStore() = default;
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     HasRelationStore<Derived, AllRelations...>::BaseRelationStore::BaseRelationStore(
             HasRelationStore &hasRelationStore, const RelationStoreType storeType
     )
@@ -324,17 +355,17 @@ namespace Concerns
         , m_storeType(storeType)
     {}
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     void HasRelationStore<Derived, AllRelations...>::BaseRelationStore
                                                    ::visit(const QString &relation)
     {
-        std::invoke(m_hasRelationStore.basemodel().getRelationsRawMapInternal()
+        std::invoke(m_hasRelationStore.basemodel().getUserRelations()
                     .find(relation).value(),
                     *this);
     }
 
     // CUR1 add constraint to also check Method return value, should be std::unique_ptr<Relation> silverqx
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     template<typename Method>
     requires std::is_member_function_pointer_v<Method>
     void HasRelationStore<Derived, AllRelations...>::BaseRelationStore
@@ -394,14 +425,16 @@ namespace Concerns
         }
     }
 
-    template<typename Derived, typename ...AllRelations>
-    inline typename HasRelationStore<Derived, AllRelations...>::RelationStoreType
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    typename HasRelationStore<Derived, AllRelations...>::RelationStoreType
     HasRelationStore<Derived, AllRelations...>::BaseRelationStore::getStoreType() const
     {
         return m_storeType;
     }
 
-    template<typename Derived, typename ...AllRelations>
+    /* EagerRelationStore */
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     HasRelationStore<Derived, AllRelations...>::EagerRelationStore::EagerRelationStore(
             HasRelationStore &hasRelationStore,
             const Tiny::TinyBuilder<Derived> &builder,
@@ -413,7 +446,7 @@ namespace Concerns
         , m_relation(relation)
     {}
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     template<typename Method>
     void HasRelationStore<Derived, AllRelations...>::EagerRelationStore::visited(
             const Method method) const
@@ -437,7 +470,7 @@ namespace Concerns
             Look at the Relation::m_parent for additional info. */
         auto dummyModel = this->m_hasRelationStore.model().newInstance();
 
-        /* We want to run a relationship query without any constrains so that we will
+        /* We want to run a relationship query without any constraints so that we will
            not have to remove these where clauses manually which gets really hacky
            and error prone. We don't want constraints because we add eager ones. */
         auto relationInstance =
@@ -451,7 +484,9 @@ namespace Concerns
                                            m_models, m_relation);
     }
 
-    template<typename Derived, typename ...AllRelations>
+    /* PushRelationStore */
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     HasRelationStore<Derived, AllRelations...>::PushRelationStore::PushRelationStore(
             HasRelationStore &hasRelationStore,
             RelationsType<AllRelations...> &models
@@ -460,10 +495,10 @@ namespace Concerns
         , m_models(models)
     {}
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     template<typename Method>
     void HasRelationStore<Derived, AllRelations...>::PushRelationStore::visited(
-            const Method) const
+            const Method /*unused*/) const
     {
         using Related = typename std::invoke_result_t<Method, Derived>
                                     ::element_type::RelatedType;
@@ -471,7 +506,9 @@ namespace Concerns
         this->m_hasRelationStore.basemodel().template pushVisited<Related>();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    /* TouchOwnersRelationStore */
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     HasRelationStore<Derived, AllRelations...>::TouchOwnersRelationStore
                                               ::TouchOwnersRelationStore(
             HasRelationStore &hasRelationStore, const QString &relation
@@ -480,7 +517,7 @@ namespace Concerns
         , m_relation(relation)
     {}
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     template<typename Method>
     void HasRelationStore<Derived, AllRelations...>::TouchOwnersRelationStore::visited(
             const Method method) const
@@ -494,7 +531,9 @@ namespace Concerns
                 .template touchOwnersVisited<Related>(std::move(relationInstance));
     }
 
-    template<typename Derived, typename ...AllRelations>
+    /* LazyRelationStore */
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     template<typename Related>
     HasRelationStore<Derived, AllRelations...>::LazyRelationStore<Related>
                                               ::LazyRelationStore(
@@ -503,7 +542,7 @@ namespace Concerns
         : BaseRelationStore(hasRelationStore, RelationStoreType::LAZY_RESULTS)
     {}
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     template<typename Related>
     template<typename Method>
     void
@@ -514,7 +553,9 @@ namespace Concerns
                 ->getResults();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    /* BelongsToManyRelatedTableStore */
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     HasRelationStore<Derived, AllRelations...>::BelongsToManyRelatedTableStore
                                               ::BelongsToManyRelatedTableStore(
             HasRelationStore &hasRelationStore
@@ -523,10 +564,10 @@ namespace Concerns
                             RelationStoreType::BELONGSTOMANY_RELATED_TABLE)
     {}
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     template<typename Method>
     void HasRelationStore<Derived, AllRelations...>::BelongsToManyRelatedTableStore
-                                                   ::visited(const Method)
+                                                   ::visited(const Method /*unused*/)
     {
         using Relation = typename std::invoke_result_t<Method, Derived>::element_type;
 
@@ -536,6 +577,8 @@ namespace Concerns
         // TODO mystery, warning: C4702: unreachable code, I don't know what cause it, I think I'm missing some forward declaration of model in some other model, but who knows silverqx
         m_result = typename Relation::RelatedType().getTable();
     }
+
+    /* QueriesRelationshipsStore */
 
     /*
        QueriesRelationshipsStore<Related> is templated by Related, because it needs to
@@ -559,7 +602,7 @@ namespace Concerns
        'relations' argument.
     */
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     template<typename Related>
     HasRelationStore<Derived, AllRelations...>::QueriesRelationshipsStore<Related>
                                               ::QueriesRelationshipsStore(
@@ -580,7 +623,7 @@ namespace Concerns
         , m_relations(relations)
     {}
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     template<typename Related>
     template<typename RelatedFromMethod, typename Method>
     void
@@ -593,7 +636,7 @@ namespace Concerns
                     "How did this happen? Is a mystery 😎, a Related type has to be "
                     "the same as a RelatedFromMethod.");
 
-        // We want to run a relationship query without any constrains
+        // We want to run a relationship query without any constraints
         auto relationInstance =
                 Relations::Relation<Derived, RelatedFromMethod>::noConstraints(
                     [this, &method]
@@ -612,9 +655,9 @@ namespace Concerns
                         m_callback);
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     template<typename Related>
-    inline constexpr typename
+    constexpr typename
     HasRelationStore<Derived, AllRelations...>::RelationStoreType
     HasRelationStore<Derived, AllRelations...>::QueriesRelationshipsStore<Related>
                                               ::initStoreType()
@@ -625,7 +668,85 @@ namespace Concerns
             return RelationStoreType::QUERIES_RELATIONSHIPS_TINY;
     }
 
-    template<typename Derived, typename ...AllRelations>
+    /* HasRelationStore */
+
+    // CUR1 clang-tidy fix modernize-use-equals-delete silverqx
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    HasRelationStore<Derived, AllRelations...>::HasRelationStore(
+#ifdef TINYORM_DEBUG
+                const HasRelationStore &other)
+    {
+        // This is real porn 😂
+        Q_ASSERT_X(m_relationStore.empty() && other.m_relationStore.empty(),
+                   "Relation store copy constructor",
+                   relationStoreCopyMoveTemplate(CopyMoveTemplateType::COPY)
+                   .toUtf8().constData());
+
+        m_relationStore = {};
+    }
+#else
+                const HasRelationStore &/*unused*/)
+        : m_relationStore()
+    {}
+#endif
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    HasRelationStore<Derived, AllRelations...> &
+    HasRelationStore<Derived, AllRelations...>::operator=(
+#ifdef TINYORM_DEBUG
+                const HasRelationStore &other)
+    {
+        Q_ASSERT_X(m_relationStore.empty() && other.m_relationStore.empty(),
+                   "Relation store copy assignment",
+                   relationStoreCopyMoveTemplate(CopyMoveTemplateType::COPY)
+                   .toUtf8().constData());
+#else
+                const HasRelationStore &/*unused*/)
+    {
+#endif
+        m_relationStore = {};
+
+        return *this;
+    }
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    HasRelationStore<Derived, AllRelations...>::HasRelationStore(
+#ifdef TINYORM_DEBUG
+                HasRelationStore &&other) noexcept
+    {
+        Q_ASSERT_X(m_relationStore.empty() && other.m_relationStore.empty(),
+                   "Relation store move constructor",
+                   relationStoreCopyMoveTemplate(CopyMoveTemplateType::MOVE)
+                   .toUtf8().constData());
+
+        m_relationStore = {};
+    }
+#else
+                HasRelationStore &&/*unused*/) noexcept
+        : m_relationStore()
+    {}
+#endif
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    HasRelationStore<Derived, AllRelations...> &
+    HasRelationStore<Derived, AllRelations...>::operator=(
+#ifdef TINYORM_DEBUG
+                HasRelationStore &&other) noexcept
+    {
+        Q_ASSERT_X(m_relationStore.empty() && other.m_relationStore.empty(),
+                   "Relation store move assignment",
+                   relationStoreCopyMoveTemplate(CopyMoveTemplateType::MOVE)
+                   .toUtf8().constData());
+#else
+                HasRelationStore &&/*unused*/) noexcept
+    {
+#endif
+        m_relationStore = {};
+
+        return *this;
+    }
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     typename HasRelationStore<Derived, AllRelations...>::BaseRelationStore &
     HasRelationStore<Derived, AllRelations...>::createEagerStore(
             const Tiny::TinyBuilder<Derived> &builder, QVector<Derived> &models,
@@ -637,7 +758,7 @@ namespace Concerns
         return *m_relationStore.top();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     typename HasRelationStore<Derived, AllRelations...>::BaseRelationStore &
     HasRelationStore<Derived, AllRelations...>::createPushStore(
             RelationsType<AllRelations...> &models)
@@ -647,7 +768,7 @@ namespace Concerns
         return *m_relationStore.top();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     typename HasRelationStore<Derived, AllRelations...>::BaseRelationStore &
     HasRelationStore<Derived, AllRelations...>::createTouchOwnersStore(
             const QString &relation)
@@ -658,7 +779,7 @@ namespace Concerns
         return *m_relationStore.top();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     template<typename Related>
     typename HasRelationStore<Derived, AllRelations...>::BaseRelationStore &
     HasRelationStore<Derived, AllRelations...>::createLazyStore()
@@ -668,7 +789,7 @@ namespace Concerns
         return *m_relationStore.top();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     typename HasRelationStore<Derived, AllRelations...>::BaseRelationStore &
     HasRelationStore<Derived, AllRelations...>::createBelongsToManyRelatedTableStore()
     {
@@ -677,7 +798,7 @@ namespace Concerns
         return *m_relationStore.top();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     template<typename Related>
     typename HasRelationStore<Derived, AllRelations...>::BaseRelationStore &
     HasRelationStore<Derived, AllRelations...>::createQueriesRelationshipsStore(
@@ -693,89 +814,87 @@ namespace Concerns
         return *m_relationStore.top();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     void HasRelationStore<Derived, AllRelations...>::resetRelationStore()
     {
         m_relationStore.pop();
     }
 
-    template<typename Derived, typename ...AllRelations>
-    inline typename HasRelationStore<Derived, AllRelations...>::PushRelationStore &
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    typename HasRelationStore<Derived, AllRelations...>::PushRelationStore &
     HasRelationStore<Derived, AllRelations...>::pushStore()
     {
         return *std::static_pointer_cast<PushRelationStore>(m_relationStore.top());
     }
 
-    template<typename Derived, typename ...AllRelations>
-    inline const typename HasRelationStore<Derived, AllRelations...>
-                          ::TouchOwnersRelationStore &
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    const typename HasRelationStore<Derived, AllRelations...>::TouchOwnersRelationStore &
     HasRelationStore<Derived, AllRelations...>::touchOwnersStore() const
     {
         return *std::static_pointer_cast<
                 const TouchOwnersRelationStore>(m_relationStore.top());
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     template<typename Related>
-    inline const typename HasRelationStore<Derived, AllRelations...>
-                          ::template LazyRelationStore<Related> &
+    const typename HasRelationStore<Derived, AllRelations...>
+                   ::template LazyRelationStore<Related> &
     HasRelationStore<Derived, AllRelations...>::lazyStore() const
     {
         return *std::static_pointer_cast<
                 const LazyRelationStore<Related>>(m_relationStore.top());
     }
 
-    template<typename Derived, typename ...AllRelations>
-    inline const typename HasRelationStore<Derived, AllRelations...>
-                          ::BelongsToManyRelatedTableStore &
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    const typename HasRelationStore<Derived, AllRelations...>
+                   ::BelongsToManyRelatedTableStore &
     HasRelationStore<Derived, AllRelations...>::belongsToManyRelatedTableStore() const
     {
         return *std::static_pointer_cast<
                 const BelongsToManyRelatedTableStore>(m_relationStore.top());
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     template<typename Related>
-    inline const typename HasRelationStore<Derived, AllRelations...>
-    ::template QueriesRelationshipsStore<Related> &
+    const typename HasRelationStore<Derived, AllRelations...>
+                   ::template QueriesRelationshipsStore<Related> &
     HasRelationStore<Derived, AllRelations...>::queriesRelationshipsStore() const
     {
         return *std::static_pointer_cast<
                 const QueriesRelationshipsStore<Related>>(m_relationStore.top());
     }
 
-    template<typename Derived, typename ...AllRelations>
-    inline Model<Derived, AllRelations...> &
-    HasRelationStore<Derived, AllRelations...>::basemodel()
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    QString
+    HasRelationStore<Derived, AllRelations...>::relationStoreCopyMoveTemplate(
+                const CopyMoveTemplateType type)
     {
-        return static_cast<Model<Derived, AllRelations...> &>(*this);
+#ifdef TINYORM_DEBUG
+        const auto message =
+                QStringLiteral(
+                    "You can not %1 the %2 model in the middle of any relation store "
+                    "operation.");
+
+        const auto className = Orm::Utils::Type::classPureBasename<Derived>();
+
+        switch (type) {
+        case CopyMoveTemplateType::COPY:
+            return message.arg(QStringLiteral("copy"), className);
+        case CopyMoveTemplateType::MOVE:
+            return message.arg(QStringLiteral("move"), className);
+        default:
+            // This should never happen 🤔
+            qFatal("Bad type in relationStoreCopyMoveTemplate().");
+        }
+#endif
+        return "";
     }
 
-    template<typename Derived, typename ...AllRelations>
-    inline const Model<Derived, AllRelations...> &
-    HasRelationStore<Derived, AllRelations...>::basemodel() const
-    {
-        return static_cast<const Model<Derived, AllRelations...> &>(*this);
-    }
-
-    template<typename Derived, typename ...AllRelations>
-    inline Derived &
-    HasRelationStore<Derived, AllRelations...>::model()
-    {
-        return static_cast<Derived &>(*this);
-    }
-
-    template<typename Derived, typename ...AllRelations>
-    inline const Derived &
-    HasRelationStore<Derived, AllRelations...>::model() const
-    {
-        return static_cast<const Derived &>(*this);
-    }
+    /* Static cast this to a child's instance type (CRTP) */
+    TINY_CRTP_MODEL_WITH_BASE_DEFINITIONS(HasRelationStore)
 
 } // namespace Orm::Tiny::Concerns
-} // namespace Orm::Tiny
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // HASRELATIONSTORE_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_CONCERNS_HASRELATIONSTORE_HPP

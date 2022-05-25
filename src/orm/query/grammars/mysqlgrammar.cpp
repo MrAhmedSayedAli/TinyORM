@@ -1,11 +1,10 @@
 #include "orm/query/grammars/mysqlgrammar.hpp"
 
+#include "orm/macros/threadlocal.hpp"
 #include "orm/query/querybuilder.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Query::Grammars
 {
 
@@ -93,41 +92,50 @@ QString MySqlGrammar::wrapValue(QString value) const
 const QMap<Grammar::SelectComponentType, Grammar::SelectComponentValue> &
 MySqlGrammar::getCompileMap() const
 {
-    using std::placeholders::_1;
-    // Needed, because some compileXx() methods are overloaded
-    const auto getBind = [this](auto &&func)
+    // CUR schema, update all this comments silverqx
+    /* Needed, because some compileXx() methods are overloaded, this way I will capture
+       'this' reference and the compileMethod rvalue reference in the following lambda
+       and simply save std::function<> in the SelectComponentValue's compileMethod data
+       member. */
+    const auto bind = [this](auto &&compileMethod)
     {
-        return std::bind(std::forward<decltype (func)>(func), this, _1);
+        return [this,
+                compileMethod = std::forward<decltype (compileMethod)>(compileMethod)]
+               (const auto &query)
+        {
+            return std::invoke(compileMethod, this, query);
+        };
     };
 
     // Pointers to a where member methods by whereType, yes yes c++ 😂
+    T_THREAD_LOCAL
     static const QMap<SelectComponentType, SelectComponentValue> cached {
-        {SelectComponentType::AGGREGATE, {getBind(&MySqlGrammar::compileAggregate),
+        {SelectComponentType::AGGREGATE, {bind(&MySqlGrammar::compileAggregate),
                         [this]
                         (const auto &query)
                         { return shouldCompileAggregate(query.getAggregate()); }}},
-        {SelectComponentType::COLUMNS,   {getBind(&MySqlGrammar::compileColumns),
+        {SelectComponentType::COLUMNS,   {bind(&MySqlGrammar::compileColumns),
                         [this]
                         (const auto &query) { return shouldCompileColumns(query); }}},
-        {SelectComponentType::FROM,      {getBind(&MySqlGrammar::compileFrom),
+        {SelectComponentType::FROM,      {bind(&MySqlGrammar::compileFrom),
                         [this]
                         (const auto &query)
                         { return shouldCompileFrom(query.getFrom()); }}},
-        {SelectComponentType::JOINS,     {getBind(&MySqlGrammar::compileJoins),
+        {SelectComponentType::JOINS,     {bind(&MySqlGrammar::compileJoins),
                         [](const auto &query) { return !query.getJoins().isEmpty(); }}},
-        {SelectComponentType::WHERES,    {getBind(&MySqlGrammar::compileWheres),
+        {SelectComponentType::WHERES,    {bind(&MySqlGrammar::compileWheres),
                         [](const auto &query) { return !query.getWheres().isEmpty(); }}},
-        {SelectComponentType::GROUPS,    {getBind(&MySqlGrammar::compileGroups),
+        {SelectComponentType::GROUPS,    {bind(&MySqlGrammar::compileGroups),
                         [](const auto &query) { return !query.getGroups().isEmpty(); }}},
-        {SelectComponentType::HAVINGS,   {getBind(&MySqlGrammar::compileHavings),
+        {SelectComponentType::HAVINGS,   {bind(&MySqlGrammar::compileHavings),
                         [](const auto &query) { return !query.getHavings().isEmpty(); }}},
-        {SelectComponentType::ORDERS,    {getBind(&MySqlGrammar::compileOrders),
+        {SelectComponentType::ORDERS,    {bind(&MySqlGrammar::compileOrders),
                         [](const auto &query) { return !query.getOrders().isEmpty(); }}},
-        {SelectComponentType::LIMIT,     {getBind(&MySqlGrammar::compileLimit),
+        {SelectComponentType::LIMIT,     {bind(&MySqlGrammar::compileLimit),
                         [](const auto &query) { return query.getLimit() > -1; }}},
-        {SelectComponentType::OFFSET,    {getBind(&MySqlGrammar::compileOffset),
+        {SelectComponentType::OFFSET,    {bind(&MySqlGrammar::compileOffset),
                         [](const auto &query) { return query.getOffset() > -1; }}},
-        {SelectComponentType::LOCK,      {getBind(&MySqlGrammar::compileLock),
+        {SelectComponentType::LOCK,      {bind(&MySqlGrammar::compileLock),
                         [](const auto &query) { return query.getLock().index() != 0; }}},
     };
 
@@ -138,28 +146,38 @@ MySqlGrammar::getCompileMap() const
 const std::function<QString(const WhereConditionItem &)> &
 MySqlGrammar::getWhereMethod(const WhereType whereType) const
 {
-    using std::placeholders::_1;
-    const auto getBind = [this](auto &&func)
+    /* Needed, because some compileXx() methods are overloaded, this way I will capture
+       'this' reference and the compileMethod rvalue reference in the following lambda
+       and simply save std::function<> in the SelectComponentValue's compileMethod data
+       member. */
+    const auto bind = [this](auto &&compileMethod)
     {
-        return std::bind(std::forward<decltype (func)>(func), this, _1);
+        return [this,
+                compileMethod = std::forward<decltype (compileMethod)>(compileMethod)]
+               (const auto &query)
+        {
+            return std::invoke(compileMethod, this, query);
+        };
     };
 
     // Pointers to a where member methods by whereType, yes yes c++ 😂
     // An order has to be the same as in enum struct WhereType
     // FUTURE QHash would has faster lookup, I should choose QHash, fix also another Grammars silverx
+    T_THREAD_LOCAL
     static const QVector<std::function<QString(const WhereConditionItem &)>> cached {
-        getBind(&MySqlGrammar::whereBasic),
-        getBind(&MySqlGrammar::whereNested),
-        getBind(&MySqlGrammar::whereColumn),
-        getBind(&MySqlGrammar::whereIn),
-        getBind(&MySqlGrammar::whereNotIn),
-        getBind(&MySqlGrammar::whereNull),
-        getBind(&MySqlGrammar::whereNotNull),
-        getBind(&MySqlGrammar::whereRaw),
-        getBind(&MySqlGrammar::whereExists),
-        getBind(&MySqlGrammar::whereNotExists),
+        bind(&MySqlGrammar::whereBasic),
+        bind(&MySqlGrammar::whereNested),
+        bind(&MySqlGrammar::whereColumn),
+        bind(&MySqlGrammar::whereIn),
+        bind(&MySqlGrammar::whereNotIn),
+        bind(&MySqlGrammar::whereNull),
+        bind(&MySqlGrammar::whereNotNull),
+        bind(&MySqlGrammar::whereRaw),
+        bind(&MySqlGrammar::whereExists),
+        bind(&MySqlGrammar::whereNotExists),
     };
 
+    T_THREAD_LOCAL
     static const auto size = cached.size();
 
     // Check if whereType is in the range, just for sure 😏
@@ -170,6 +188,5 @@ MySqlGrammar::getWhereMethod(const WhereType whereType) const
 }
 
 } // namespace Orm::Query::Grammars
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

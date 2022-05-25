@@ -1,6 +1,6 @@
 #pragma once
-#ifndef SQLITECONNECTOR_HPP
-#define SQLITECONNECTOR_HPP
+#ifndef ORM_CONNCECTORS_SQLITECONNECTOR_HPP
+#define ORM_CONNCECTORS_SQLITECONNECTOR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -8,17 +8,22 @@ TINY_SYSTEM_HEADER
 #include "orm/connectors/connector.hpp"
 #include "orm/connectors/connectorinterface.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Connectors
 {
 
     /*! SQLite connector. */
     class SQLiteConnector final : public ConnectorInterface, public Connector
     {
+        Q_DISABLE_COPY(SQLiteConnector)
+
     public:
+        /*! Default constructor. */
+        inline SQLiteConnector() = default;
+        /*! Virtual destructor. */
+        inline ~SQLiteConnector() final = default;
+
         /*! Establish a database connection. */
         ConnectionName connect(const QVariantHash &config) const override;
 
@@ -38,12 +43,11 @@ namespace Orm::Connectors
         void checkDatabaseExists(const QVariantHash &config) const;
 
         /*! The default QSqlDatabase connection options for the SQLiteConnector. */
-        inline static const QVariantHash m_options = {};
+        inline static const QVariantHash m_options;
     };
 
 } // namespace Orm::Connectors
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // SQLITECONNECTOR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_CONNCECTORS_SQLITECONNECTOR_HPP

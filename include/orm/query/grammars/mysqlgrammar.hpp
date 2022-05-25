@@ -1,16 +1,14 @@
 #pragma once
-#ifndef MYSQLGRAMMAR_HPP
-#define MYSQLGRAMMAR_HPP
+#ifndef ORM_QUERY_GRAMMARS_MYSQLGRAMMAR_HPP
+#define ORM_QUERY_GRAMMARS_MYSQLGRAMMAR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include "orm/query/grammars/grammar.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Query::Grammars
 {
 
@@ -21,7 +19,9 @@ namespace Orm::Query::Grammars
 
     public:
         /*! Default constructor. */
-        MySqlGrammar() = default;
+        inline MySqlGrammar() = default;
+        /*! Virtual destructor. */
+        inline ~MySqlGrammar() override = default;
 
         /*! Compile an insert statement into SQL. */
         QString compileInsert(const QueryBuilder &query,
@@ -60,8 +60,7 @@ namespace Orm::Query::Grammars
     };
 
 } // namespace Orm::Query::Grammars
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // MYSQLGRAMMAR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_QUERY_GRAMMARS_MYSQLGRAMMAR_HPP

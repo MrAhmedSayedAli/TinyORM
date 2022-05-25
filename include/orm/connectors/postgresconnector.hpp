@@ -1,6 +1,6 @@
 #pragma once
-#ifndef POSTGRESCONNECTOR_HPP
-#define POSTGRESCONNECTOR_HPP
+#ifndef ORM_CONNCECTORS_POSTGRESCONNECTOR_HPP
+#define ORM_CONNCECTORS_POSTGRESCONNECTOR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -8,10 +8,8 @@ TINY_SYSTEM_HEADER
 #include "orm/connectors/connector.hpp"
 #include "orm/connectors/connectorinterface.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Connectors
 {
 
@@ -20,7 +18,14 @@ namespace Orm::Connectors
     /*! PostgreSql connector. */
     class PostgresConnector final : public ConnectorInterface, public Connector
     {
+        Q_DISABLE_COPY(PostgresConnector)
+
     public:
+        /*! Default constructor. */
+        inline PostgresConnector() = default;
+        /*! Virtual destructor. */
+        inline ~PostgresConnector() final = default;
+
         /*! Establish a database connection. */
         ConnectionName connect(const QVariantHash &config) const override;
 
@@ -53,13 +58,11 @@ namespace Orm::Connectors
 
     private:
         /*! The default QSqlDatabase connection options for the SQLiteConnector. */
-        inline static const QVariantHash m_options = {};
+        inline static const QVariantHash m_options;
     };
 
 } // namespace Orm::Connectors
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
+TINYORM_END_COMMON_NAMESPACE
 
-#endif // POSTGRESCONNECTOR_HPP
+#endif // ORM_CONNCECTORS_POSTGRESCONNECTOR_HPP

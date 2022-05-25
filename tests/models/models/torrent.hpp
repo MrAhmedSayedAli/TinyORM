@@ -1,9 +1,10 @@
 #pragma once
-#ifndef TORRENT_HPP
-#define TORRENT_HPP
+#ifndef MODELS_TORRENT_HPP
+#define MODELS_TORRENT_HPP
 
 #include "orm/db.hpp"
 #include "orm/tiny/model.hpp"
+#include "orm/tiny/relations/pivot.hpp"
 
 #include "models/tag.hpp"
 #include "models/tagged.hpp"
@@ -11,9 +12,18 @@
 #include "models/torrentpreviewablefile.hpp"
 #include "models/user.hpp"
 
-using namespace Orm::Constants;
+#ifdef PROJECT_TINYORM_PLAYGROUND
+#  include "configuration.hpp"
+#endif
+
+namespace Models
+{
 
 //using Orm::AttributeItem;
+using Orm::Constants::ID;
+using Orm::Constants::NAME;
+using Orm::Constants::SIZE;
+
 using Orm::Tiny::Model;
 using Orm::Tiny::Relations::BelongsTo;
 using Orm::Tiny::Relations::BelongsToMany;
@@ -21,10 +31,18 @@ using Orm::Tiny::Relations::HasOne;
 using Orm::Tiny::Relations::HasMany;
 using Orm::Tiny::Relations::Pivot;
 
+#ifdef PROJECT_TINYORM_PLAYGROUND
+using TinyPlay::Configuration;
+#endif
+
 /* This class serves as a showcase, so all possible features are defined / used. */
 
+class Tag;
+class TorrentPeer;
 class TorrentPreviewableFile;
+class User;
 
+// NOLINTNEXTLINE(misc-no-recursion)
 class Torrent final :
         public Model<Torrent, TorrentPreviewableFile, TorrentPeer, Tag, User, Pivot>
 //        public Model<Torrent, TorrentPreviewableFile, TorrentPeer, Tag, User, Tagged>
@@ -33,7 +51,7 @@ class Torrent final :
     using Model::Model;
 
 public:
-    /*! The "type" of the primary key ID. */
+    /*! Type used for the primary key ID. */
     using KeyType = quint64;
 
 //    explicit Torrent(const QVector<AttributeItem> &attributes = {});
@@ -97,9 +115,9 @@ public:
 
 private:
     /*! The name of the "created at" column. */
-    inline static const QString CREATED_AT = Orm::CREATED_AT;
+    inline static const QString &CREATED_AT = Orm::CREATED_AT; // NOLINT(cppcoreguidelines-interfaces-global-init)
     /*! The name of the "updated at" column. */
-    inline static const QString UPDATED_AT = Orm::UPDATED_AT;
+    inline static const QString &UPDATED_AT = Orm::UPDATED_AT; // NOLINT(cppcoreguidelines-interfaces-global-init)
 
     /*! The table associated with the model. */
     QString u_table {"torrents"};
@@ -129,9 +147,9 @@ private:
 #ifdef PROJECT_TINYORM_PLAYGROUND
     // I leave the initializer here to be clearly visible
     /*! The connection name for the model. */
-    QString u_connection {DB::getDefaultConnection() == "mysql"
-                          ? "mysql_alt"
-                          : DB::getDefaultConnection()};
+    QString u_connection {Orm::DB::getDefaultConnection() == Mysql
+                          ? Mysql_Alt
+                          : Orm::DB::getDefaultConnection()};
 #endif
 
     /*! The connection name for the model. */
@@ -139,43 +157,45 @@ private:
 
     /*! The model's default values for attributes. */
 //    inline static const QVector<AttributeItem> u_attributes {
-//        {"size",     0},
+//        {SIZE,       0},
 //        {"progress", 0},
 //        {"added_on", QDateTime::fromString("2021-04-01 15:10:10", Qt::ISODate)},
 //    };
 
     /*! The attributes that are mass assignable. */
-    inline static QStringList u_fillable {
+    inline static const QStringList u_fillable { // NOLINT(cppcoreguidelines-interfaces-global-init)
         ID,
         NAME,
-        "size",
+        SIZE,
         "progress",
         "added_on",
         "hash",
         "note",
-        Orm::UPDATED_AT,
+        UPDATED_AT,
     };
 
     /*! The attributes that aren't mass assignable. */
 //    inline static QStringList u_guarded {
-//        "password",
+//        password_,
 //    };
 
-    /*! Indicates if the model should be timestamped. */
+    /*! Indicates whether the model should be timestamped. */
 //    bool u_timestamps = true;
 
     /*! The storage format of the model's date columns. */
 //    inline static QString u_dateFormat {"yyyy-MM-dd HH:mm:ss"};
 
     /*! The attributes that should be mutated to dates. @deprecated */
-    inline static QStringList u_dates {"added_on"};
+    inline static const QStringList u_dates {"added_on"};
 
     /*! All of the relationships to be touched. */
 //    QStringList u_touches {"tags"};
 //    QStringList u_touches {"relation_name"};
 };
 
-// TODO finish this, move to base class and test eg in qvector, qhash, etc silverqx
-//QDebug operator<<(QDebug debug, const Torrent &c);
+} // namespace Models
 
-#endif // TORRENT_HPP
+// TODO finish this, move to base class and test eg in qvector, qhash, etc silverqx
+//QDebug operator<<(QDebug debug, const Models::Torrent &c);
+
+#endif // MODELS_TORRENT_HPP

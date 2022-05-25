@@ -1,18 +1,22 @@
 INCLUDEPATH += $$PWD
 
 extern_constants: \
-    HEADERS += $$PWD/orm/constants_extern.hpp
+    headersList += \
+        $$PWD/orm/constants_extern.hpp \
+        $$PWD/orm/schema/schemaconstants_extern.hpp
 else: \
-    HEADERS += $$PWD/orm/constants_inline.hpp
+    headersList += \
+        $$PWD/orm/constants_inline.hpp \
+        $$PWD/orm/schema/schemaconstants_inline.hpp
 
-HEADERS += \
+headersList += \
     $$PWD/orm/basegrammar.hpp \
-    $$PWD/orm/concepts.hpp \
+    $$PWD/orm/concerns/countsqueries.hpp \
     $$PWD/orm/concerns/detectslostconnections.hpp \
     $$PWD/orm/concerns/hasconnectionresolver.hpp \
+    $$PWD/orm/concerns/logsqueries.hpp \
+    $$PWD/orm/concerns/managestransactions.hpp \
     $$PWD/orm/config.hpp \
-    $$PWD/orm/configuration.hpp \
-    $$PWD/orm/connectioninterface.hpp \
     $$PWD/orm/connectionresolverinterface.hpp \
     $$PWD/orm/connectors/connectionfactory.hpp \
     $$PWD/orm/connectors/connector.hpp \
@@ -29,14 +33,23 @@ HEADERS += \
     $$PWD/orm/exceptions/invalidformaterror.hpp \
     $$PWD/orm/exceptions/invalidtemplateargumenterror.hpp \
     $$PWD/orm/exceptions/logicerror.hpp \
+    $$PWD/orm/exceptions/ormerror.hpp \
     $$PWD/orm/exceptions/queryerror.hpp \
     $$PWD/orm/exceptions/runtimeerror.hpp \
     $$PWD/orm/exceptions/sqlerror.hpp \
     $$PWD/orm/exceptions/sqltransactionerror.hpp \
-    $$PWD/orm/logquery.hpp \
-    $$PWD/orm/macros.hpp \
+    $$PWD/orm/libraryinfo.hpp \
+    $$PWD/orm/macros/archdetect.hpp \
+    $$PWD/orm/macros/commonnamespace.hpp \
+    $$PWD/orm/macros/compilerdetect.hpp \
+    $$PWD/orm/macros/export.hpp \
+    $$PWD/orm/macros/export_common.hpp \
+    $$PWD/orm/macros/likely.hpp \
+    $$PWD/orm/macros/logexecutedquery.hpp \
     $$PWD/orm/macros/systemheader.hpp \
+    $$PWD/orm/macros/threadlocal.hpp \
     $$PWD/orm/mysqlconnection.hpp \
+    $$PWD/orm/ormconcepts.hpp \
     $$PWD/orm/ormtypes.hpp \
     $$PWD/orm/postgresconnection.hpp \
     $$PWD/orm/query/expression.hpp \
@@ -50,44 +63,76 @@ HEADERS += \
     $$PWD/orm/query/processors/processor.hpp \
     $$PWD/orm/query/processors/sqliteprocessor.hpp \
     $$PWD/orm/query/querybuilder.hpp \
+    $$PWD/orm/schema.hpp \
+    $$PWD/orm/schema/blueprint.hpp \
+    $$PWD/orm/schema/columndefinition.hpp \
+    $$PWD/orm/schema/columndefinitionreference.hpp \
+    $$PWD/orm/schema/foreignidcolumndefinitionreference.hpp \
+    $$PWD/orm/schema/foreignkeydefinitionreference.hpp \
     $$PWD/orm/schema/grammars/mysqlschemagrammar.hpp \
     $$PWD/orm/schema/grammars/postgresschemagrammar.hpp \
     $$PWD/orm/schema/grammars/schemagrammar.hpp \
     $$PWD/orm/schema/grammars/sqliteschemagrammar.hpp \
+    $$PWD/orm/schema/indexdefinitionreference.hpp \
     $$PWD/orm/schema/mysqlschemabuilder.hpp \
     $$PWD/orm/schema/postgresschemabuilder.hpp \
     $$PWD/orm/schema/schemabuilder.hpp \
+    $$PWD/orm/schema/schemaconstants.hpp \
+    $$PWD/orm/schema/schematypes.hpp \
     $$PWD/orm/schema/sqliteschemabuilder.hpp \
     $$PWD/orm/sqliteconnection.hpp \
     $$PWD/orm/support/configurationoptionsparser.hpp \
-    $$PWD/orm/tiny/concerns/guardsattributes.hpp \
-    $$PWD/orm/tiny/concerns/hasattributes.hpp \
-    $$PWD/orm/tiny/concerns/hasrelationstore.hpp \
-    $$PWD/orm/tiny/concerns/queriesrelationships.hpp \
-    $$PWD/orm/tiny/exceptions/massassignmenterror.hpp \
-    $$PWD/orm/tiny/exceptions/modelnotfounderror.hpp \
-    $$PWD/orm/tiny/exceptions/relationnotfounderror.hpp \
-    $$PWD/orm/tiny/exceptions/relationnotloadederror.hpp \
-    $$PWD/orm/tiny/model.hpp \
-    $$PWD/orm/tiny/modelproxies.hpp \
-    $$PWD/orm/tiny/relations/basepivot.hpp \
-    $$PWD/orm/tiny/relations/belongsto.hpp \
-    $$PWD/orm/tiny/relations/belongstomany.hpp \
-    $$PWD/orm/tiny/relations/concerns/supportsdefaultmodels.hpp \
-    $$PWD/orm/tiny/relations/hasmany.hpp \
-    $$PWD/orm/tiny/relations/hasone.hpp \
-    $$PWD/orm/tiny/relations/hasoneormany.hpp \
-    $$PWD/orm/tiny/relations/pivot.hpp \
-    $$PWD/orm/tiny/relations/relation.hpp \
-    $$PWD/orm/tiny/relations/relationproxies.hpp \
-    $$PWD/orm/tiny/tinybuilder.hpp \
-    $$PWD/orm/tiny/tinybuilderproxies.hpp \
-    $$PWD/orm/tiny/tinytypes.hpp \
+    $$PWD/orm/support/databaseconfiguration.hpp \
+    $$PWD/orm/support/databaseconnectionsmap.hpp \
     $$PWD/orm/types/log.hpp \
     $$PWD/orm/types/statementscounter.hpp \
-    $$PWD/orm/utils/attribute.hpp \
-    $$PWD/orm/utils/export.hpp \
-    $$PWD/orm/utils/export_common.hpp \
-    $$PWD/orm/utils/string.hpp \
+    $$PWD/orm/utils/container.hpp \
+    $$PWD/orm/utils/fs.hpp \
+    $$PWD/orm/utils/query.hpp \
+    $$PWD/orm/utils/thread.hpp \
     $$PWD/orm/utils/type.hpp \
     $$PWD/orm/version.hpp \
+
+!disable_orm: \
+    headersList += \
+        $$PWD/orm/tiny/concerns/guardedmodel.hpp \
+        $$PWD/orm/tiny/concerns/guardsattributes.hpp \
+        $$PWD/orm/tiny/concerns/hasattributes.hpp \
+        $$PWD/orm/tiny/concerns/hasrelationships.hpp \
+        $$PWD/orm/tiny/concerns/hasrelationstore.hpp \
+        $$PWD/orm/tiny/concerns/hastimestamps.hpp \
+        $$PWD/orm/tiny/concerns/queriesrelationships.hpp \
+        $$PWD/orm/tiny/exceptions/massassignmenterror.hpp \
+        $$PWD/orm/tiny/exceptions/modelnotfounderror.hpp \
+        $$PWD/orm/tiny/exceptions/relationnotfounderror.hpp \
+        $$PWD/orm/tiny/exceptions/relationnotloadederror.hpp \
+        $$PWD/orm/tiny/macros/crtpmodel.hpp \
+        $$PWD/orm/tiny/macros/crtpmodelwithbase.hpp \
+        $$PWD/orm/tiny/model.hpp \
+        $$PWD/orm/tiny/modelproxies.hpp \
+        $$PWD/orm/tiny/relations/basepivot.hpp \
+        $$PWD/orm/tiny/relations/belongsto.hpp \
+        $$PWD/orm/tiny/relations/belongstomany.hpp \
+        $$PWD/orm/tiny/relations/concerns/supportsdefaultmodels.hpp \
+        $$PWD/orm/tiny/relations/hasmany.hpp \
+        $$PWD/orm/tiny/relations/hasone.hpp \
+        $$PWD/orm/tiny/relations/hasoneormany.hpp \
+        $$PWD/orm/tiny/relations/pivot.hpp \
+        $$PWD/orm/tiny/relations/relation.hpp \
+        $$PWD/orm/tiny/relations/relationproxies.hpp \
+        $$PWD/orm/tiny/relations/relationtypes.hpp \
+        $$PWD/orm/tiny/tinybuilder.hpp \
+        $$PWD/orm/tiny/tinybuilderproxies.hpp \
+        $$PWD/orm/tiny/tinyconcepts.hpp \
+        $$PWD/orm/tiny/tinytypes.hpp \
+        $$PWD/orm/tiny/types/connectionoverride.hpp \
+        $$PWD/orm/tiny/types/syncchanges.hpp \
+        $$PWD/orm/tiny/utils/attribute.hpp \
+
+!disable_orm|!disable_tom: \
+    headersList += \
+        $$PWD/orm/tiny/utils/string.hpp \
+
+HEADERS += $$sorted(headersList)
+
+unset(headersList)

@@ -2,36 +2,39 @@
 
 #include <QSharedPointer>
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+#include "orm/macros/likely.hpp"
+
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm
 {
 
-DatabaseManager *DB::m_manager = nullptr;
+std::shared_ptr<DatabaseManager> DB::m_manager;
 
-DatabaseManager &DB::manager()
+std::shared_ptr<DatabaseManager>
+DB::create(const QString &defaultConnection)
 {
-    if (!m_manager)
-        m_manager = DatabaseManager::instance();
-
-    return *m_manager;
+    return DatabaseManager::create(defaultConnection);
 }
 
-std::unique_ptr<DatabaseManager>
+std::shared_ptr<DatabaseManager>
 DB::create(const QVariantHash &config, const QString &connection)
 {
     return DatabaseManager::create(config, connection);
 }
 
-std::unique_ptr<DatabaseManager>
+std::shared_ptr<DatabaseManager>
 DB::create(const ConfigurationsType &configs, const QString &defaultConnection)
 {
     return DatabaseManager::create(configs, defaultConnection);
 }
 
-ConnectionInterface &DB::connection(const QString &name)
+DatabaseConnection &DB::connection(const QString &name)
+{
+    return manager().connection(name);
+}
+
+DatabaseConnection &DB::on(const QString &name)
 {
     return manager().connection(name);
 }
@@ -42,12 +45,29 @@ DB::addConnection(const QVariantHash &config, const QString &name)
     return manager().addConnection(config, name);
 }
 
+DatabaseManager &
+DB::addConnections(const ConfigurationsType &configs)
+{
+    return manager().addConnections(configs);
+}
+
+DatabaseManager &
+DB::addConnections(const ConfigurationsType &configs, const QString &defaultConnection)
+{
+    return manager().addConnections(configs, defaultConnection);
+}
+
 bool DB::removeConnection(const QString &name)
 {
     return manager().removeConnection(name);
 }
 
-ConnectionInterface &DB::reconnect(const QString &name)
+bool DB::containsConnection(const QString &name)
+{
+    return manager().containsConnection(name);
+}
+
+DatabaseConnection &DB::reconnect(const QString &name)
 {
     return manager().reconnect(name);
 }
@@ -57,7 +77,12 @@ void DB::disconnect(const QString &name)
     manager().disconnect(name);
 }
 
-const QStringList DB::supportedDrivers()
+QSqlDatabase DB::connectEagerly(const QString &name)
+{
+    return manager().connectEagerly(name);
+}
+
+QStringList DB::supportedDrivers()
 {
     return manager().supportedDrivers();
 }
@@ -72,6 +97,11 @@ QStringList DB::openedConnectionNames()
     return manager().openedConnectionNames();
 }
 
+std::size_t DB::connectionsSize()
+{
+    return manager().connectionsSize();
+}
+
 const QString &DB::getDefaultConnection()
 {
     return manager().getDefaultConnection();
@@ -82,14 +112,25 @@ void DB::setDefaultConnection(const QString &defaultConnection)
     manager().setDefaultConnection(defaultConnection);
 }
 
+void DB::resetDefaultConnection()
+{
+    manager().resetDefaultConnection();
+}
+
 DatabaseManager &
-DB::setReconnector(const DatabaseManager::ReconnectorType &reconnector)
+DB::setReconnector(const ReconnectorType &reconnector)
 {
     return manager().setReconnector(reconnector);
 }
 
 QSharedPointer<QueryBuilder>
-DB::table(const QString &table, const QString &as, const QString &connection)
+DB::table(const QString &table, const QString &connection)
+{
+    return manager().connection(connection).table(table);
+}
+
+QSharedPointer<QueryBuilder>
+DB::tableAs(const QString &table, const QString &as, const QString &connection)
 {
     return manager().connection(connection).table(table, as);
 }
@@ -106,50 +147,58 @@ QSqlQuery DB::qtQuery(const QString &connection)
 }
 
 QSqlQuery
-DB::select(const QString &query, const QVector<QVariant> &bindings)
+DB::select(const QString &query, const QVector<QVariant> &bindings,
+           const QString &connection)
 {
-    return manager().connection().select(query, bindings);
+    return manager().connection(connection).select(query, bindings);
 }
 
 QSqlQuery
-DB::selectOne(const QString &query, const QVector<QVariant> &bindings)
+DB::selectOne(const QString &query, const QVector<QVariant> &bindings,
+              const QString &connection)
 {
-    return manager().connection().selectOne(query, bindings);
+    return manager().connection(connection).selectOne(query, bindings);
 }
 
 QSqlQuery
-DB::insert(const QString &query, const QVector<QVariant> &bindings)
+DB::insert(const QString &query, const QVector<QVariant> &bindings,
+           const QString &connection)
 {
-    return manager().connection().insert(query, bindings);
+    return manager().connection(connection).insert(query, bindings);
 }
 
 std::tuple<int, QSqlQuery>
-DB::update(const QString &query, const QVector<QVariant> &bindings)
+DB::update(const QString &query, const QVector<QVariant> &bindings,
+           const QString &connection)
 {
-    return manager().connection().update(query, bindings);
+    return manager().connection(connection).update(query, bindings);
 }
 
 std::tuple<int, QSqlQuery>
-DB::remove(const QString &query, const QVector<QVariant> &bindings)
+DB::remove(const QString &query, const QVector<QVariant> &bindings,
+           const QString &connection)
 {
-    return manager().connection().remove(query, bindings);
+    return manager().connection(connection).remove(query, bindings);
 }
 
 QSqlQuery
-DB::statement(const QString &query, const QVector<QVariant> &bindings)
+DB::statement(const QString &query, const QVector<QVariant> &bindings,
+              const QString &connection)
 {
-    return manager().connection().statement(query, bindings);
+    return manager().connection(connection).statement(query, bindings);
 }
 
 std::tuple<int, QSqlQuery>
-DB::affectingStatement(const QString &query, const QVector<QVariant> &bindings)
+DB::affectingStatement(const QString &query, const QVector<QVariant> &bindings,
+                       const QString &connection)
 {
-    return manager().connection().affectingStatement(query, bindings);
+    return manager().connection(connection).affectingStatement(query, bindings);
 }
 
-QSqlQuery DB::unprepared(const QString &query)
+QSqlQuery DB::unprepared(const QString &query,
+                         const QString &connection)
 {
-    return manager().connection().unprepared(query);
+    return manager().connection(connection).unprepared(query);
 }
 
 // NOTE api different silverqx
@@ -173,7 +222,7 @@ bool DB::savepoint(const QString &id, const QString &connection)
     return manager().connection(connection).savepoint(id);
 }
 
-bool DB::savepoint(const size_t id, const QString &connection)
+bool DB::savepoint(const std::size_t id, const QString &connection)
 {
     return manager().connection(connection).savepoint(id);
 }
@@ -183,14 +232,29 @@ bool DB::rollbackToSavepoint(const QString &id, const QString &connection)
     return manager().connection(connection).rollbackToSavepoint(id);
 }
 
-bool DB::rollbackToSavepoint(const size_t id, const QString &connection)
+bool DB::rollbackToSavepoint(const std::size_t id, const QString &connection)
 {
     return manager().connection(connection).rollbackToSavepoint(id);
 }
 
-uint DB::transactionLevel(const QString &connection)
+size_t DB::transactionLevel(const QString &connection)
 {
     return manager().connection(connection).transactionLevel();
+}
+
+bool DB::isOpen(const QString &connection)
+{
+    return manager().connection(connection).isOpen();
+}
+
+bool DB::pingDatabase(const QString &connection)
+{
+    return manager().connection(connection).pingDatabase();
+}
+
+QSqlDriver *DB::driver(const QString &connection)
+{
+    return manager().connection(connection).driver();
 }
 
 bool DB::countingElapsed(const QString &connection)
@@ -389,7 +453,7 @@ bool DB::logging(const QString &connection)
     return manager().connection(connection).logging();
 }
 
-size_t DB::getQueryLogOrder()
+std::size_t DB::getQueryLogOrder()
 {
     return manager().getQueryLogOrder();
 }
@@ -399,6 +463,21 @@ QString DB::driverName(const QString &connection)
     return manager().connection(connection).driverName();
 }
 
+const QString &DB::driverNamePrintable(const QString &connection)
+{
+    return manager().connection(connection).driverNamePrintable();
+}
+
+const QString &DB::databaseName(const QString &connection)
+{
+    return manager().connection(connection).getDatabaseName();
+}
+
+const QString &DB::hostName(const QString &connection)
+{
+    return manager().connection(connection).getHostName();
+}
+
 QVector<Log>
 DB::pretend(const std::function<void()> &callback, const QString &connection)
 {
@@ -406,7 +485,7 @@ DB::pretend(const std::function<void()> &callback, const QString &connection)
 }
 
 QVector<Log>
-DB::pretend(const std::function<void(ConnectionInterface &)> &callback,
+DB::pretend(const std::function<void(DatabaseConnection &)> &callback,
             const QString &connection)
 {
     return manager().connection(connection).pretend(callback);
@@ -427,7 +506,15 @@ void DB::forgetRecordModificationState(const QString &connection)
     manager().connection(connection).forgetRecordModificationState();
 }
 
+DatabaseManager &DB::manager()
+{
+    if (m_manager) T_LIKELY
+        return *m_manager;
+
+    else T_UNLIKELY
+        return *(m_manager = DatabaseManager::instance());
+}
+
 } // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

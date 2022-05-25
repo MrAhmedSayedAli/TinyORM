@@ -4,12 +4,13 @@ require_once 'vendor/autoload.php';
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Arr;
 
 /**
  * Combine Insert statement values with columns.
  *
- * @param array $columns
- * @param array $values
+ * @param array $columns Array of keys to be used
+ * @param array $values  Array of values to be used
  *
  * @return array
  */
@@ -21,8 +22,8 @@ function combineValues(array $columns, array $values): array
     foreach ($values as $value) {
         if (count($value) != $columnsSize)
             throw new InvalidArgumentException(
-                '\'$columns\' and \'$values\' in the parseInsertValues() have to have ' .
-                'the same elements size.');
+                '\'$columns\' and \'$values\' arguments in the combineValues() must have ' .
+                'the same number of items.');
 
         $result[] = array_combine($columns, $value);
     }
@@ -34,32 +35,105 @@ function combineValues(array $columns, array $values): array
  * Drop all tables for the given connection.
  *
  * @param string $connection The connection name
+ *
  * @return void
  */
-function dropAllTables(string $connection)
+function dropAllTables(string $connection): void
 {
     Capsule::schema($connection)->dropAllTables();
 }
 
 /**
- * Add all configuration connections to the capsule.
+ * Check whether all env. variables are undefined.
+ *
+ * @param array $envVariables Environment variables to check
+ *
+ * @return bool
+ */
+function allEnvVariablesEmpty(array $envVariables): bool
+{
+    return collect($envVariables)->every(function (string $envVariable) {
+        return false === getenv($envVariable);
+    });
+}
+
+/**
+ * Remove configurations for which env. variables were not passed.
+ *
+ * @param array $configs Configurations array to process
+ *
+ * @return void
+ */
+function removeUnusedConfigs(array &$configs): void
+{
+    foreach (array_keys($configs) as $connectionName)
+        switch ($connectionName) {
+            case 'mysql':
+            {
+                $envVariables = [
+                    'DB_MYSQL_HOST', 'DB_MYSQL_PORT', 'DB_MYSQL_DATABASE', 'DB_MYSQL_USERNAME',
+                    'DB_MYSQL_PASSWORD', 'DB_MYSQL_CHARSET', 'DB_MYSQL_COLLATION'
+                ];
+
+                if (allEnvVariablesEmpty($envVariables))
+                    Arr::forget($configs, 'mysql');
+
+                break;
+            }
+
+            case 'sqlite': {
+                $envVariables = ['DB_SQLITE_DATABASE'];
+
+                if (allEnvVariablesEmpty($envVariables))
+                    Arr::forget($configs, 'sqlite');
+
+                break;
+            }
+
+            case 'pgsql':
+            {
+                $envVariables = [
+                    'DB_PGSQL_HOST', 'DB_PGSQL_PORT', 'DB_PGSQL_DATABASE', 'DB_PGSQL_SCHEMA',
+                    'DB_PGSQL_USERNAME', 'DB_PGSQL_PASSWORD', 'DB_PGSQL_CHARSET'
+                ];
+
+                if (allEnvVariablesEmpty($envVariables))
+                    Arr::forget($configs, 'pgsql');
+
+                break;
+            }
+
+            default:
+                throw new RuntimeException("Unknown connection name '$connectionName'.");
+        }
+}
+
+/**
+ * Add all configuration connections to the capsule and connect to the database.
  *
  * @param Capsule $capsule
- * @param array   $configs
+ * @param array   $configs Configurations to add and connect
+ *
+ * @return void
  */
-function addConnections(Capsule $capsule, array $configs = [])
+function addConnections(Capsule $capsule, array $configs = []): void
 {
-    foreach ($configs as $name => $config)
+    foreach ($configs as $name => $config) {
         $capsule->addConnection($config, $name);
+
+        // Create database connection eagerly
+        $capsule->getConnection($name)->statement('select 1 + 1');
+    }
 }
 
 /**
  * Create all tables for the given connection.
  *
  * @param string $connection The connection name
+ *
  * @return void
  */
-function createTables(string $connection)
+function createTables(string $connection): void
 {
     $schema = Capsule::schema($connection);
 
@@ -205,11 +279,11 @@ function createTables(string $connection)
  * Seed all tables with data.
  *
  * @param string $connection The connection name
+ *
  * @return void
  */
-function seedTables(string $connection)
+function seedTables(string $connection): void
 {
-
     Capsule::table('users', null, $connection)->insert(
         combineValues(['id', 'name', 'note'], [
             [1, 'andrej', null],
@@ -238,11 +312,12 @@ function seedTables(string $connection)
             [2, 2, '902555777'],
             [3, 3, '905111999'],
         ]));
+
     Capsule::table('torrents', null, $connection)->insert(
         combineValues(['id', 'user_id', 'name', 'size', 'progress', 'added_on', 'hash', 'note', 'created_at', 'updated_at'], [
-            [1, 1, 'test1', 11, 100, '2020-08-01 20:11:10', '1579e3af2768cdf52ec84c1f320333f68401dc6e', NULL, '2021-01-01 14:51:23', '2021-01-01 18:46:31'],
-            [2, 1, 'test2', 12, 200, '2020-08-02 20:11:10', '2579e3af2768cdf52ec84c1f320333f68401dc6e', NULL, '2021-01-02 14:51:23', '2021-01-02 18:46:31'],
-            [3, 1, 'test3', 13, 300, '2020-08-03 20:11:10', '3579e3af2768cdf52ec84c1f320333f68401dc6e', NULL, '2021-01-03 14:51:23', '2021-01-03 18:46:31'],
+            [1, 1, 'test1', 11, 100, '2020-08-01 20:11:10', '1579e3af2768cdf52ec84c1f320333f68401dc6e', NULL,                             '2021-01-01 14:51:23', '2021-01-01 18:46:31'],
+            [2, 1, 'test2', 12, 200, '2020-08-02 20:11:10', '2579e3af2768cdf52ec84c1f320333f68401dc6e', NULL,                             '2021-01-02 14:51:23', '2021-01-02 18:46:31'],
+            [3, 1, 'test3', 13, 300, '2020-08-03 20:11:10', '3579e3af2768cdf52ec84c1f320333f68401dc6e', NULL,                             '2021-01-03 14:51:23', '2021-01-03 18:46:31'],
             [4, 1, 'test4', 14, 400, '2020-08-04 20:11:10', '4579e3af2768cdf52ec84c1f320333f68401dc6e', 'after update revert updated_at', '2021-01-04 14:51:23', '2021-01-04 18:46:31'],
             [5, 2, 'test5', 15, 500, '2020-08-05 20:11:10', '5579e3af2768cdf52ec84c1f320333f68401dc6e', 'no peers',                       '2021-01-05 14:51:23', '2021-01-05 18:46:31'],
             [6, 2, 'test6', 16, 600, '2020-08-06 20:11:10', '6579e3af2768cdf52ec84c1f320333f68401dc6e', 'no files no peers',              '2021-01-06 14:51:23', '2021-01-06 18:46:31'],
@@ -258,12 +333,12 @@ function seedTables(string $connection)
 
     Capsule::table('torrent_previewable_files', null, $connection)->insert(
         combineValues(['id', 'torrent_id', 'file_index', 'filepath', 'size', 'progress', 'note', 'created_at', 'updated_at'], [
-            [1, 1,    0, 'test1_file1.mkv', 1024, 200,  'no file properties', '2021-01-01 14:51:23', '2021-01-01 17:46:31'],
-            [2, 2,    0, 'test2_file1.mkv', 2048, 870,  NULL, '2021-01-02 14:51:23', '2021-01-02 17:46:31'],
-            [3, 2,    1, 'test2_file2.mkv', 3072, 1000, NULL, '2021-01-02 14:51:23', '2021-01-02 17:46:31'],
-            [4, 3,    0, 'test3_file1.mkv', 5568, 870,  NULL, '2021-01-03 14:51:23', '2021-01-03 17:46:31'],
-            [5, 4,    0, 'test4_file1.mkv', 4096, 0,    NULL, '2021-01-04 14:51:23', '2021-01-04 17:46:31'],
-            [6, 5,    0, 'test5_file1.mkv', 2048, 999,  NULL, '2021-01-05 14:51:23', '2021-01-05 17:46:31'],
+            [1, 1,    0, 'test1_file1.mkv', 1024, 200,  'no file properties',                    '2021-01-01 14:51:23', '2021-01-01 17:46:31'],
+            [2, 2,    0, 'test2_file1.mkv', 2048, 870,  NULL,                                    '2021-01-02 14:51:23', '2021-01-02 17:46:31'],
+            [3, 2,    1, 'test2_file2.mkv', 3072, 1000, NULL,                                    '2021-01-02 14:51:23', '2021-01-02 17:46:31'],
+            [4, 3,    0, 'test3_file1.mkv', 5568, 870,  NULL,                                    '2021-01-03 14:51:23', '2021-01-03 17:46:31'],
+            [5, 4,    0, 'test4_file1.mkv', 4096, 0,    NULL,                                    '2021-01-04 14:51:23', '2021-01-04 17:46:31'],
+            [6, 5,    0, 'test5_file1.mkv', 2048, 999,  NULL,                                    '2021-01-05 14:51:23', '2021-01-05 17:46:31'],
             [7, 5,    1, 'test5_file2.mkv', 2560, 890,  'for tst_BaseModel::remove()/destroy()', '2021-01-02 14:55:23', '2021-01-02 17:47:31'],
             [8, 5,    2, 'test5_file3.mkv', 2570, 896,  'for tst_BaseModel::destroy()',          '2021-01-02 14:56:23', '2021-01-02 17:48:31'],
             [9, NULL, 0, 'test0_file0.mkv', 1440, 420,  'no torrent parent model',               '2021-01-02 14:56:23', '2021-01-02 17:48:31'],
@@ -319,14 +394,15 @@ function seedTables(string $connection)
 }
 
 /**
- * Fix sequence number for Postgres.
+ * Fix sequence numbers for the PostgreSQL.
  *
- * I have to fix sequences in Postgres because I'm inserting IDs manually and
+ * I have to fix sequences in Postgres because I'm inserting IDs manually, and
  * it doesn't increment sequences.
  *
  * @return void
  */
-function fixSequences() {
+function fixPostgresSequences(): void
+{
     $sequences = [
         'torrents_id_seq'                            => 7,
         'torrent_peers_id_seq'                       => 5,
@@ -342,7 +418,7 @@ function fixSequences() {
 
     foreach ($sequences as $sequence => $id) {
         Capsule::connection('pgsql')
-            ->unprepared("ALTER SEQUENCE {$sequence} RESTART WITH {$id}");
+            ->unprepared("ALTER SEQUENCE $sequence RESTART WITH $id");
     }
 }
 
@@ -350,20 +426,32 @@ function fixSequences() {
  * Create and seed all tables for all connections.
  *
  * @param array $connections Connection names
+ * @param array $options Command line options parsed by getopt()
+ *
  * @return void
  */
-function createAndSeedTables(array $connections)
+function createAndSeedTables(array $connections, array $options): void
 {
     foreach ($connections as $connection) {
+        /* Allow to skip dropping and creating tables for the mysql and pgsql connection.
+           Currently, TinyORM's migrations supports the MySQL and PostgreSQL database, and
+           I want to use our tom migrations in CI/CD pipelines, this is the reason
+           for the condition below. */
+        if ((array_key_exists('skip-mysql-migrate',    $options) && $connection === 'mysql') ||
+            (array_key_exists('skip-postgres-migrate', $options) && $connection === 'pgsql')
+        )
+            continue;
+
         dropAllTables($connection);
         createTables($connection);
         seedTables($connection);
 
         if ($connection === 'pgsql')
-            fixSequences();
+            fixPostgresSequences();
     }
 }
 
+/* Main Code */
 $capsule = new Capsule;
 
 $capsule->setAsGlobal();
@@ -372,38 +460,50 @@ $capsule->bootEloquent();
 $configs = [
     'mysql' => [
         'driver'    => 'mysql',
-        'host'      => \getenv('DB_MYSQL_HOST')      ?: '127.0.0.1',
-        'port'      => \getenv('DB_MYSQL_PORT')      ?: '3306',
-        'database'  => \getenv('DB_MYSQL_DATABASE')  ?: '',
-        'username'  => \getenv('DB_MYSQL_USERNAME')  ?: 'root',
-        'password'  => \getenv('DB_MYSQL_PASSWORD')  ?: '',
-        'charset'   => \getenv('DB_MYSQL_CHARSET')   ?: 'utf8mb4',
-        'collation' => \getenv('DB_MYSQL_COLLATION') ?: 'utf8mb4_0900_ai_ci',
+        'host'      => getenv('DB_MYSQL_HOST')      ?: '127.0.0.1',
+        'port'      => getenv('DB_MYSQL_PORT')      ?: '3306',
+        'database'  => getenv('DB_MYSQL_DATABASE')  ?: '',
+        'username'  => getenv('DB_MYSQL_USERNAME')  ?: 'root',
+        'password'  => getenv('DB_MYSQL_PASSWORD')  ?: '',
+        'charset'   => getenv('DB_MYSQL_CHARSET')   ?: 'utf8mb4',
+        'collation' => getenv('DB_MYSQL_COLLATION') ?: 'utf8mb4_0900_ai_ci',
         'timezone'  => '+00:00',
         'prefix'    => '',
     ],
 
     'sqlite' => [
         'driver'   => 'sqlite',
-        'database' => \getenv('DB_SQLITE_DATABASE') ?: '',
+        'database' => getenv('DB_SQLITE_DATABASE') ?: '',
         'prefix'   => '',
         'foreign_key_constraints' => true,
     ],
 
     'pgsql' => [
         'driver'   => 'pgsql',
-        'host'     => \getenv('DB_PGSQL_HOST')     ?: '127.0.0.1',
-        'port'     => \getenv('DB_PGSQL_PORT')     ?: '5432',
-        'database' => \getenv('DB_PGSQL_DATABASE') ?: 'postgres',
-        'schema'   => \getenv('DB_PGSQL_SCHEMA')   ?: 'public',
-        'username' => \getenv('DB_PGSQL_USERNAME') ?: 'postgres',
-        'password' => \getenv('DB_PGSQL_PASSWORD') ?: '',
-        'charset'  => \getenv('DB_PGSQL_CHARSET')  ?: 'utf8',
+        'host'     => getenv('DB_PGSQL_HOST')     ?: '127.0.0.1',
+        'port'     => getenv('DB_PGSQL_PORT')     ?: '5432',
+        'database' => getenv('DB_PGSQL_DATABASE') ?: 'postgres',
+        'schema'   => getenv('DB_PGSQL_SCHEMA')   ?: 'public',
+        'username' => getenv('DB_PGSQL_USERNAME') ?: 'postgres',
+        'password' => getenv('DB_PGSQL_PASSWORD') ?: '',
+        'charset'  => getenv('DB_PGSQL_CHARSET')  ?: 'utf8',
         'timezone' => 'UTC',
         'sslmode'  => 'prefer',
         'prefix'   => '',
     ],
 ];
 
+// Remove configurations for which env. variables were not defined
+removeUnusedConfigs($configs);
+// Create database connections first so when any connection fails then no data will be seeded
 addConnections($capsule, $configs);
-createAndSeedTables(array_keys($configs));
+
+// Parse command line options
+$options = getopt('', [
+    'skip-mysql-migrate',
+    'skip-postgres-migrate',
+]);
+
+createAndSeedTables(array_keys($configs), $options);
+
+//var_dump(Capsule::connection('mysql')->table('torrents')->get()->toArray());

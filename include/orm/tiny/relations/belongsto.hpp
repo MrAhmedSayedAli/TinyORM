@@ -1,6 +1,6 @@
 #pragma once
-#ifndef BELONGSTO_HPP
-#define BELONGSTO_HPP
+#ifndef ORM_TINY_RELATIONS_BELONGSTO_HPP
+#define ORM_TINY_RELATIONS_BELONGSTO_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -11,10 +11,8 @@ TINY_SYSTEM_HEADER
 #include "orm/tiny/relations/concerns/supportsdefaultmodels.hpp"
 #include "orm/tiny/relations/relation.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny::Relations
 {
 
@@ -25,6 +23,8 @@ namespace Orm::Tiny::Relations
             public Relation<Model, Related>,
             public Concerns::SupportsDefaultModels<Model, Related>
     {
+        Q_DISABLE_COPY(BelongsTo)
+
     protected:
         /*! Protected constructor. */
         BelongsTo(std::unique_ptr<Related> &&related, Model &child,
@@ -32,6 +32,9 @@ namespace Orm::Tiny::Relations
                   const QString &relationName);
 
     public:
+        /*! Virtual destructor. */
+        inline ~BelongsTo() override = default;
+
         /*! Instantiate and initialize a new BelongsTo instance. */
         static std::unique_ptr<BelongsTo<Model, Related>>
         instance(std::unique_ptr<Related> &&related,
@@ -46,7 +49,7 @@ namespace Orm::Tiny::Relations
         /*! Dissociate previously associated model from the given parent. */
         Model &dissociate() const;
         /*! Alias of "dissociate" method. */
-        Model &disassociate() const;
+        inline Model &disassociate() const;
 
         /* Basic operations */
         /*! Set the base constraints on the relation query. */
@@ -68,13 +71,13 @@ namespace Orm::Tiny::Relations
 
         /* Getters / Setters */
         /*! Get the name of the relationship. */
-        QString getRelationName() const;
+        inline QString getRelationName() const;
         /*! Get the fully qualified foreign key of the relationship. */
-        QString getQualifiedForeignKeyName() const;
+        inline QString getQualifiedForeignKeyName() const;
 
         /* Others */
         /*! The textual representation of the Relation type. */
-        QString relationTypeName() const override;
+        inline QString relationTypeName() const override;
 
     protected:
         /*! Gather the keys from a vector of related models. */
@@ -84,7 +87,7 @@ namespace Orm::Tiny::Relations
         buildDictionary(const QVector<Related> &results) const;
 
         /*! Make a new related instance for the given model. */
-        Related newRelatedInstanceFor(const Model &) const override;
+        inline Related newRelatedInstanceFor(const Model &/*unused*/) const override;
 
         /* Querying Relationship Existence/Absence */
         /*! Add the constraints for a relationship query. */
@@ -103,13 +106,16 @@ namespace Orm::Tiny::Relations
         /*! The name of the relationship. */
         QString m_relationName;
         /*! The count of self joins. */
+        T_THREAD_LOCAL
         inline static int selfJoinCount = 0;
     };
 
     template<class Model, class Related>
     BelongsTo<Model, Related>::BelongsTo(
             std::unique_ptr<Related> &&related, Model &child,
+            // NOLINTNEXTLINE(modernize-pass-by-value)
             const QString &foreignKey, const QString &ownerKey,
+            // NOLINTNEXTLINE(modernize-pass-by-value)
             const QString &relationName
     )
         : Relation<Model, Related>(std::move(related), child)
@@ -172,7 +178,7 @@ namespace Orm::Tiny::Relations
     }
 
     template<class Model, class Related>
-    inline Model &BelongsTo<Model, Related>::disassociate() const
+    Model &BelongsTo<Model, Related>::disassociate() const
     {
         return dissociate();
     }
@@ -270,19 +276,19 @@ namespace Orm::Tiny::Relations
     }
 
     template<class Model, class Related>
-    inline QString BelongsTo<Model, Related>::getRelationName() const
+    QString BelongsTo<Model, Related>::getRelationName() const
     {
         return m_relationName;
     }
 
     template<class Model, class Related>
-    inline QString BelongsTo<Model, Related>::getQualifiedForeignKeyName() const
+    QString BelongsTo<Model, Related>::getQualifiedForeignKeyName() const
     {
         return m_child.qualifyColumn(m_foreignKey);
     }
 
     template<class Model, class Related>
-    inline QString BelongsTo<Model, Related>::relationTypeName() const
+    QString BelongsTo<Model, Related>::relationTypeName() const
     {
         return "BelongsTo";
     }
@@ -304,17 +310,16 @@ namespace Orm::Tiny::Relations
                 keys.append(value);
         }
 
-        using namespace ranges;
-        return keys |= actions::sort(less {}, [](auto key_)
+        return keys |= ranges::actions::sort(ranges::less {}, [](auto key_)
         {
             return key_.template value<typename Model::KeyType>();
         })
-                       | actions::unique;
+                | ranges::actions::unique;
     }
 
     template<class Model, class Related>
-    inline Related
-    BelongsTo<Model, Related>::newRelatedInstanceFor(const Model &) const
+    Related
+    BelongsTo<Model, Related>::newRelatedInstanceFor(const Model &/*unused*/) const
     {
         return this->m_related->newInstance();
     }
@@ -337,8 +342,7 @@ namespace Orm::Tiny::Relations
     }
 
 } // namespace Orm::Tiny::Relations
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // BELONGSTO_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_RELATIONS_BELONGSTO_HPP

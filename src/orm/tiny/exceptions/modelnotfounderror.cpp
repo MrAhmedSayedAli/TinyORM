@@ -2,12 +2,11 @@
 
 #include "orm/constants.hpp"
 
-using namespace Orm::Constants;
+using Orm::Constants::COMMA;
+using Orm::Constants::DOT;
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny::Exceptions
 {
 
@@ -49,7 +48,6 @@ QString ModelNotFoundError::formatMessage(const char *model,
     return result;
 }
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Tiny::Exceptions
+
+TINYORM_END_COMMON_NAMESPACE

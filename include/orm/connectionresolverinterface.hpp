@@ -1,42 +1,48 @@
 #pragma once
-#ifndef CONNECTIONRESOLVERINTERFACE_HPP
-#define CONNECTIONRESOLVERINTERFACE_HPP
+#ifndef ORM_CONNECTIONRESOLVERINTERFACE_HPP
+#define ORM_CONNECTIONRESOLVERINTERFACE_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include <QString>
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+#include "orm/macros/commonnamespace.hpp"
+
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm
 {
-    class ConnectionInterface;
+    class DatabaseConnection;
 
     /*! Database connection resolver interface. */
     class ConnectionResolverInterface
     {
+        Q_DISABLE_COPY(ConnectionResolverInterface)
+
     public:
+        /*! Default constructor. */
+        inline ConnectionResolverInterface() = default;
         /*! Pure virtual destructor. */
-        virtual ~ConnectionResolverInterface() = 0;
+        inline virtual ~ConnectionResolverInterface() = 0;
 
         /*! Get a database connection instance. */
-        virtual ConnectionInterface &connection(const QString &name = "") = 0;
+        virtual DatabaseConnection &connection(const QString &name = "") = 0;
 
         /*! Get the default connection name. */
         virtual const QString &getDefaultConnection() const = 0;
 
         /*! Set the default connection name. */
         virtual void setDefaultConnection(const QString &defaultConnection) = 0;
+
+        /*! Reset the default connection name to a default value. */
+        virtual void resetDefaultConnection() = 0;
     };
 
-    inline ConnectionResolverInterface::~ConnectionResolverInterface() = default;
+    ConnectionResolverInterface::~ConnectionResolverInterface() = default;
 
 } // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // CONNECTIONRESOLVERINTERFACE_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_CONNECTIONRESOLVERINTERFACE_HPP

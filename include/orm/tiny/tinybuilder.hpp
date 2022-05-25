@@ -1,6 +1,6 @@
 #pragma once
-#ifndef TINYBUILDER_HPP
-#define TINYBUILDER_HPP
+#ifndef ORM_TINY_TINYBUILDER_HPP
+#define ORM_TINY_TINYBUILDER_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -16,10 +16,8 @@ TINY_SYSTEM_HEADER
 #include "orm/tiny/exceptions/modelnotfounderror.hpp"
 #include "orm/tiny/tinybuilderproxies.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny
 {
 
@@ -27,19 +25,24 @@ namespace Orm::Tiny
     template<typename Model>
     class Builder :
             public BuilderProxies<Model>,
-            public Orm::Tiny::Concerns::QueriesRelationships<Model>
+            public Concerns::QueriesRelationships<Model>
     {
+        Q_DISABLE_COPY(Builder)
+
         // Used by TinyBuilderProxies::where/latest/oldest/update()
         friend BuilderProxies<Model>;
 
+        /*! Alias for the attribute utils. */
+        using AttributeUtils = Orm::Tiny::Utils::Attribute;
+
     public:
         /*! Constructor. */
-        Builder(const QSharedPointer<QueryBuilder> query, Model &model);
+        Builder(const QSharedPointer<QueryBuilder> &query, Model &model);
 
         /*! Get the SQL representation of the query. */
-        QString toSql() const;
+        inline QString toSql() const;
         /*! Get the current query value bindings as flattened QVector. */
-        QVector<QVariant> getBindings() const;
+        inline QVector<QVariant> getBindings() const;
 
         /*! Execute the query as a "select" statement. */
         QVector<Model> get(const QVector<Column> &columns = {ASTERISK});
@@ -146,28 +149,24 @@ namespace Orm::Tiny
         QVector<Model> hydrate(QSqlQuery &&result);
 
         /*! Get the model instance being queried. */
-        Model &getModel();
+        inline Model &getModel();
         /*! Get the underlying query builder instance. */
-        QueryBuilder &getQuery() const;
+        inline QueryBuilder &getQuery() const;
         // TODO now fix revisit silverqx
-        // CUR1 this cant be const &, omg, OR can be? I can make copy immediatelly, but anyway it should be non-const non-ref silverqx
         /*! Get the underlying query builder instance as a QSharedPointer. */
-        const QSharedPointer<QueryBuilder> &
+        inline const QSharedPointer<QueryBuilder> &
         getQuerySharedPointer() const;
 
         /*! Get a database connection. */
-        ConnectionInterface &getConnection() const;
+        inline DatabaseConnection &getConnection() const;
 
         /*! Get a base query builder instance. */
-        QueryBuilder &toBase() const;
+        inline QueryBuilder &toBase() const;
         // FUTURE add Query Scopes feature silverqx
 //        { return $this->applyScopes()->getQuery(); }
 
-        /*! Explains the query. */
-//        QSqlQuery explain() const;
-
         /*! Qualify the given column name by the model's table. */
-        QString qualifyColumn(const QString &column) const;
+        inline QString qualifyColumn(const QString &column) const;
 
     protected:
         /*! Expression alias. */
@@ -207,11 +206,11 @@ namespace Orm::Tiny
         /*! The model being queried. */
         Model m_model;
         /*! The relationships that should be eager loaded. */
-        QVector<WithItem> m_eagerLoad = {};
+        QVector<WithItem> m_eagerLoad;
     };
 
     template<typename Model>
-    Builder<Model>::Builder(const QSharedPointer<QueryBuilder> query,
+    Builder<Model>::Builder(const QSharedPointer<QueryBuilder> &query,
                             Model &model)
         : m_query(query)
         , m_model(model)
@@ -220,13 +219,13 @@ namespace Orm::Tiny
     }
 
     template<typename Model>
-    inline QString Builder<Model>::toSql() const
+    QString Builder<Model>::toSql() const
     {
         return toBase().toSql();
     }
 
     template<typename Model>
-    inline QVector<QVariant> Builder<Model>::getBindings() const
+    QVector<QVariant> Builder<Model>::getBindings() const
     {
         return toBase().getBindings();
     }
@@ -314,7 +313,7 @@ namespace Orm::Tiny
             return *model;
 
         throw Exceptions::ModelNotFoundError(
-                    Utils::Type::classPureBasename<Model>(), {id});
+                    Orm::Utils::Type::classPureBasename<Model>(), {id});
     }
 
     template<typename Model>
@@ -351,9 +350,8 @@ namespace Orm::Tiny
         if (instance)
             return *instance;
 
-        return newModelInstance(
-                    Utils::Attribute::joinAttributesForFirstOr(attributes, values,
-                                                               m_model.getKeyName()));
+        return newModelInstance(AttributeUtils::joinAttributesForFirstOr(
+                                    attributes, values, m_model.getKeyName()));
     }
 
     template<typename Model>
@@ -366,9 +364,8 @@ namespace Orm::Tiny
             return *instance;
 
         auto newInstance =
-                newModelInstance(
-                    Utils::Attribute::joinAttributesForFirstOr(attributes, values,
-                                                               m_model.getKeyName()));
+                newModelInstance(AttributeUtils::joinAttributesForFirstOr(
+                                     attributes, values, m_model.getKeyName()));
 
         newInstance.save();
 
@@ -385,7 +382,7 @@ namespace Orm::Tiny
             return *model;
 
         throw Exceptions::ModelNotFoundError(
-                    Utils::Type::classPureBasename<Model>());
+                    Orm::Utils::Type::classPureBasename<Model>());
     }
 
     template<typename Model>
@@ -487,9 +484,8 @@ namespace Orm::Tiny
     Builder<Model>::without(const QVector<QString> &relations)
     {
         // Remove relations in the "relations" vector from m_eagerLoad vector
-        using namespace ranges;
-        m_eagerLoad = m_eagerLoad | views::remove_if(
-                          [&relations](const WithItem &with)
+        m_eagerLoad = m_eagerLoad
+                      | ranges::views::remove_if([&relations](const WithItem &with)
         {
             return relations.contains(with.name);
         })
@@ -681,50 +677,42 @@ namespace Orm::Tiny
     }
 
     template<typename Model>
-    inline Model &Builder<Model>::getModel()
+    Model &Builder<Model>::getModel()
     {
         return m_model;
     }
 
     template<typename Model>
-    inline QueryBuilder &Builder<Model>::getQuery() const
+    QueryBuilder &Builder<Model>::getQuery() const
     {
         return *m_query;
     }
 
     template<typename Model>
-    inline const QSharedPointer<QueryBuilder> &
+    const QSharedPointer<QueryBuilder> &
     Builder<Model>::getQuerySharedPointer() const
     {
         return m_query;
     }
 
     template<typename Model>
-    inline ConnectionInterface &
+    DatabaseConnection &
     Builder<Model>::getConnection() const
     {
         return m_query->getConnection();
     }
 
     template<typename Model>
-    inline QueryBuilder &Builder<Model>::toBase() const
+    QueryBuilder &Builder<Model>::toBase() const
     {
         return getQuery();
     }
 
     template<typename Model>
-    inline QString Builder<Model>::qualifyColumn(const QString &column) const
+    QString Builder<Model>::qualifyColumn(const QString &column) const
     {
         return m_model.qualifyColumn(column);
     }
-
-    // BUG Qt sql driver does not support to call EXPLAIN as a prepared statement silverqx
-//    template<typename Model>
-//    QSqlQuery Builder<Model>::explain() const
-//    {
-//        return getConnection().select(QStringLiteral("EXPLAIN %1").arg(toSql()),
-//                                      getBindings());
-//    }
 
     template<typename Model>
     QVector<WithItem>
@@ -738,7 +726,7 @@ namespace Orm::Tiny
             const auto isSelectConstraint = relation.name.contains(COLON);
 
             if (isSelectConstraint && relation.constraints)
-                throw Orm::Exceptions::RuntimeError(
+                throw Orm::Exceptions::InvalidArgumentError(
                         "Passing both 'Select constraint' and 'Lambda expression "
                         "constraint' to the Model::with() method is not allowed, use "
                         "only one of them.");
@@ -918,7 +906,7 @@ namespace Orm::Tiny
 //    template<typename ...Args>
 //    Builder<Model> &
 //    Builder<Model>::callScope(
-//            const std::function<void (Builder &, Args ...)> &scope,
+//            const std::function<void(Builder &, Args ...)> &scope,
 //            Args &&...parameters)
 //    {
 //        std::invoke(scope, *this, std::forward<Args>(parameters)...);
@@ -927,8 +915,7 @@ namespace Orm::Tiny
 //    }
 
 } // namespace Orm::Tiny
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // TINYBUILDER_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_TINYBUILDER_HPP

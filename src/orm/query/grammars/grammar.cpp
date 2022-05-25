@@ -1,13 +1,11 @@
 #include "orm/query/grammars/grammar.hpp"
 
 #include "orm/databaseconnection.hpp"
-#include "orm/macros.hpp"
+#include "orm/macros/likely.hpp"
 #include "orm/query/joinclause.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Query::Grammars
 {
 
@@ -24,7 +22,7 @@ QString Grammar::compileSelect(QueryBuilder &query) const
     /* To compile the query, we'll spin through each component of the query and
        see if that component exists. If it does we'll just call the compiler
        function for the component which is responsible for making the SQL. */
-    const auto sql = concatenate(compileComponents(query));
+    auto sql = concatenate(compileComponents(query));
 
     // Restore original columns value
     query.setColumns(original);
@@ -45,11 +43,11 @@ QString Grammar::compileInsert(const QueryBuilder &query,
                 table,
                 // Columns are obtained only from a first QMap
                 columnize(values.at(0).keys()),
-                compileInsertToVector(values).join(COMMA));
+                columnizeWithoutWrap(compileInsertToVector(values)));
 }
 
-QString Grammar::compileInsertOrIgnore(const QueryBuilder &,
-                                       const QVector<QVariantMap> &) const
+QString Grammar::compileInsertOrIgnore(const QueryBuilder &/*unused*/,
+                                       const QVector<QVariantMap> &/*unused*/) const
 {
     throw Exceptions::RuntimeError(
                 "This database engine does not support inserting while ignoring "
@@ -143,8 +141,7 @@ bool Grammar::shouldCompileColumns(const QueryBuilder &query) const
     return !query.getAggregate() && !query.getColumns().isEmpty();
 }
 
-bool Grammar::shouldCompileFrom(
-        const std::variant<std::monostate, QString, Query::Expression> &from) const
+bool Grammar::shouldCompileFrom(const FromClause &from) const
 {
     return !std::holds_alternative<std::monostate>(from) ||
             (std::holds_alternative<QString>(from) &&
@@ -155,8 +152,9 @@ QStringList Grammar::compileComponents(const QueryBuilder &query) const
 {
     QStringList sql;
 
-    const auto &compileMap = getCompileMap();
-    for (const auto &component : compileMap)
+    for (const auto &compileMap = getCompileMap();
+         const auto &component : compileMap
+    )
         if (component.isset)
             if (component.isset(query))
                 sql.append(std::invoke(component.compileMethod, query));
@@ -216,7 +214,7 @@ QString Grammar::compileWheres(const QueryBuilder &query) const
 {
     const auto sql = compileWheresToVector(query);
 
-    if (sql.size() > 0)
+    if (!sql.isEmpty())
         return concatenateWhereClauses(query, sql);
 
     return {};
@@ -230,9 +228,8 @@ QStringList Grammar::compileWheresToVector(const QueryBuilder &query) const
     compiledWheres.reserve(wheres.size());
 
     for (const auto &where : wheres)
-        compiledWheres << QStringLiteral("%1 %2")
-                          .arg(where.condition,
-                               std::invoke(getWhereMethod(where.type), where));
+        compiledWheres << SPACE_IN.arg(where.condition,
+                                       std::invoke(getWhereMethod(where.type), where));
 
     return compiledWheres;
 }
@@ -245,8 +242,7 @@ QString Grammar::concatenateWhereClauses(const QueryBuilder &query,
                              ? QStringLiteral("where")
                              : QStringLiteral("on");
 
-    return QStringLiteral("%1 %2").arg(conjunction,
-                                       removeLeadingBoolean(sql.join(SPACE)));
+    return SPACE_IN.arg(conjunction, removeLeadingBoolean(sql.join(SPACE)));
 }
 
 QString Grammar::compileJoins(const QueryBuilder &query) const
@@ -295,7 +291,7 @@ QString Grammar::compileHaving(const HavingConditionItem &having) const
 
     T_UNLIKELY
     case HavingType::RAW:
-        return QStringLiteral("%1 %2").arg(having.condition, having.sql);
+        return SPACE_IN.arg(having.condition, having.sql);
 
     T_UNLIKELY
     default:
@@ -315,7 +311,8 @@ QString Grammar::compileOrders(const QueryBuilder &query) const
     if (query.getOrders().isEmpty())
         return QLatin1String("");
 
-    return QStringLiteral("order by %1").arg(compileOrdersToVector(query).join(COMMA));
+    return QStringLiteral("order by %1")
+            .arg(columnizeWithoutWrap(compileOrdersToVector(query)));
 }
 
 QStringList Grammar::compileOrdersToVector(const QueryBuilder &query) const
@@ -327,8 +324,8 @@ QStringList Grammar::compileOrdersToVector(const QueryBuilder &query) const
 
     for (const auto &order : orders)
         if (order.sql.isEmpty()) T_LIKELY
-            compiledOrders << QStringLiteral("%1 %2")
-                              .arg(wrap(order.column), order.direction.toLower());
+            compiledOrders << SPACE_IN.arg(wrap(order.column),
+                                           order.direction.toLower());
         else T_UNLIKELY
             compiledOrders << order.sql;
 
@@ -453,11 +450,11 @@ Grammar::compileUpdateColumns(const QVector<UpdateItem> &values) const
                                    wrap(assignment.column),
                                    parameter(assignment.value));
 
-    return compiledAssignments.join(COMMA);
+    return columnizeWithoutWrap(compiledAssignments);
 }
 
 QString
-Grammar::compileUpdateWithoutJoins(const QueryBuilder &, const QString &table,
+Grammar::compileUpdateWithoutJoins(const QueryBuilder &/*unused*/, const QString &table,
                                    const QString &columns, const QString &wheres) const
 {
     // The table argument is already wrapped
@@ -475,7 +472,7 @@ Grammar::compileUpdateWithJoins(const QueryBuilder &query, const QString &table,
 }
 
 QString
-Grammar::compileDeleteWithoutJoins(const QueryBuilder &, const QString &table,
+Grammar::compileDeleteWithoutJoins(const QueryBuilder &/*unused*/, const QString &table,
                                    const QString &wheres) const
 {
     // The table argument is already wrapped
@@ -496,7 +493,7 @@ QString Grammar::compileDeleteWithJoins(const QueryBuilder &query, const QString
 
 QString Grammar::concatenate(const QStringList &segments) const
 {
-    QString result = "";
+    QString result;
 
     for (const auto &segment : segments) {
         if (segment.isEmpty())
@@ -526,10 +523,10 @@ QString Grammar::removeLeadingBoolean(QString statement) const
        whitespaces before. */
     if (statement.startsWith(QLatin1String("and ")))
         return statement.mid(firstChar(4));
-    else if (statement.startsWith(QLatin1String("or ")))
+    if (statement.startsWith(QLatin1String("or ")))
         return statement.mid(firstChar(3));
-    else
-        return statement;
+
+    return statement;
 }
 
 QVector<std::reference_wrapper<const QVariant>>
@@ -551,6 +548,5 @@ Grammar::flatBindingsForUpdateDelete(const BindingsMap &bindings,
 }
 
 } // namespace Orm::Query::Grammars
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

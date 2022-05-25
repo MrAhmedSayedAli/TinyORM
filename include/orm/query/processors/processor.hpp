@@ -1,6 +1,6 @@
 #pragma once
-#ifndef PROCESSOR_HPP
-#define PROCESSOR_HPP
+#ifndef ORM_QUERY_PROCESSORS_PROCESSOR_HPP
+#define ORM_QUERY_PROCESSORS_PROCESSOR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -8,14 +8,13 @@ TINY_SYSTEM_HEADER
 #include <QStringList>
 #include <QtGlobal>
 
-#include "orm/utils/export.hpp"
+#include "orm/macros/commonnamespace.hpp"
+#include "orm/macros/export.hpp"
 
 class QSqlQuery;
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Query::Processors
 {
 
@@ -26,8 +25,8 @@ namespace Orm::Query::Processors
 
     public:
         /*! Default constructor. */
-        Processor() = default;
-        /*! Virtual destructor. */
+        inline Processor() = default;
+        /*! Virtual destructor, this class is used so can not be pure. */
         inline virtual ~Processor() = default;
 
         /*! Process the results of a column listing query. */
@@ -35,8 +34,7 @@ namespace Orm::Query::Processors
     };
 
 } // namespace Orm::Query::Processors
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // PROCESSOR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_QUERY_PROCESSORS_PROCESSOR_HPP

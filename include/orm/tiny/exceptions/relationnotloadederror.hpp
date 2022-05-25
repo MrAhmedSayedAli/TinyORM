@@ -1,16 +1,14 @@
 #pragma once
-#ifndef RELATIONNOTLOADEDERROR_HPP
-#define RELATIONNOTLOADEDERROR_HPP
+#ifndef ORM_TINY_EXCEPTIONS_RELATIONNOTLOADEDERROR_HPP
+#define ORM_TINY_EXCEPTIONS_RELATIONNOTLOADEDERROR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include "orm/exceptions/runtimeerror.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny::Exceptions
 {
 
@@ -23,36 +21,35 @@ namespace Orm::Tiny::Exceptions
         RelationNotLoadedError(const QString &model, const QString &relation);
 
         /*! Get the affected TinyORM model. */
-        const QString &getModel() const;
+        inline const QString &getModel() const;
         /*! Get the name of the relation. */
-        const QString &getRelation() const;
+        inline const QString &getRelation() const;
 
     protected:
         /*! The name of the affected TinyORM model.. */
-        const QString m_model;
+        QString m_model;
         /*! The name of the relation. */
-        const QString m_relation;
+        QString m_relation;
 
     private:
         /*! Format the error message. */
         QString formatMessage(const QString &model, const QString &relation) const;
     };
 
-    inline const QString &
+    const QString &
     RelationNotLoadedError::getModel() const
     {
         return m_model;
     }
 
-    inline const QString &
+    const QString &
     RelationNotLoadedError::getRelation() const
     {
         return m_relation;
     }
 
-} // namespace Orm::Tiny
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Tiny::Exceptions
 
-#endif // RELATIONNOTLOADEDERROR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_EXCEPTIONS_RELATIONNOTLOADEDERROR_HPP

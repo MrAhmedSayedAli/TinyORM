@@ -77,9 +77,11 @@ Features related/to implement:
  - dilemma primarykey    : different types for primary keys
  - expression            : DB::raw() support in the query builder
  - events                : event system
+ - ga                    : github actions
  - guarded               : related to the mass assignable feature
  - json columns          : JSON support
  - logging               : logging related
+ - migrations            : database migrations related
  - multidriver           : task related to adding support for another drivers PostgreSQL, SQLite and SQL Server
  - pivot                 : pivot table in the many-to-many relationship
  - postgres              : specific to PostgreSQL server
@@ -88,7 +90,9 @@ Features related/to implement:
  - relations             : relations related 🤓
  - savepoints            : database savepoints
  - scopes                : query scopes
+ - seeders               : seeders related
  - table prefix          : table prefix in the query grammar
+ - tom                   : tom migrations related
 
 
 Versions info:
@@ -96,8 +100,13 @@ Versions info:
 
 This is laravel/framework version, not laravel/laravel version:
 
+ - I have cloned repository at - E:\htdocs\laravel-src-master
  - based on Laravel v8.26.1
- - upgrade to Laravel v8.41.0 ( 15.5.2021 )
+ - upgrade to Laravel v8.41.0 ( 15.5.2021, but I didn't merged/reflected new changes to TinyORM )
+ - upgrade to Laravel v8.80.0 ( 19.1.2021, upgrade from v8.41.0 )
+ - compare URLs (remove after merge):
+   - https://github.com/laravel/framework/compare/v8.26.1...v8.41.0
+   - https://github.com/laravel/framework/compare/v8.41.0...v8.80.0
 
 
 Maintenance:
@@ -106,6 +115,57 @@ Maintenance:
  - from time to time try:
    - compile without PCH
    - compile with Qt6, I have still problem with clazy
+
+
+GitHub Actions:
+---------------
+
+ - how to update the clazy-standalone (analyzers.yml):
+   - update the QtCreator to latest version, copy libexec/qtcreator/clang/ to some empty folder
+   - leave only the clazy-standalone executable in the bin/ folder and compress it:
+tar cjvf ../clazy-standalone.tar.bz2 .
+
+   - then upload to the gdrive to the public/TinyORM folder and create shareble link to obtain ID
+   - paste this new URL to the GitHub secrets:
+https://drive.google.com/uc?id=some_id
+
+ - prepend to the env. variables:
+
+    - name: Print env
+      run: |
+        echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+        echo "LIBRARY_PATH: $LIBRARY_PATH"
+        echo "PATH: $PATH"
+
+    - name: TinyORM prepend to the system $PATH
+      working-directory: ..
+      run: |
+        echo "LD_LIBRARY_PATH=$PWD${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH" >> $GITHUB_ENV
+        echo "LIBRARY_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+        pwd >> $GITHUB_PATH
+
+    - name: Print env
+      working-directory: ..
+      run: |
+        pwd
+        echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+        echo "LIBRARY_PATH: $LIBRARY_PATH"
+        echo "PATH: $PATH"
+
+    - run: exit 1
+
+
+RegExs:
+-------
+
+ - const data members:
+(?<![\(\)])(const) +.* +\bm_.*\b( +.*)?;$
+(?<![\(\)])(const) +.* +\bm_.*\b +=
+(?<![\(\)])(const) +.* +\bm_.*\b +{
+ - const data member references:
+(?<![\(\)])(const) +.* +&\bm_.*\b( +.*)?;$
+ - all exceptions:
+throw (.*::)?\w+(E|_error)
 
 
 Powershell commands:
@@ -119,6 +179,28 @@ Get-ChildItem -Path *.cpp,*.hpp -Recurse | sls -Pattern ' (TODO|NOTE|FIXME|BUG|W
 
  - filter out executed queries:
 Get-Content .\tmp.sql | sls -Pattern '^(Executed prepared query)' | Set-Content executed_queries.sql
+
+ - TinyOrmPlayground - run InvokeXTimes.ps1 on Linux:
+stp && sq5
+export LD_LIBRARY_PATH=../../../TinyOrm/TinyOrm-builds-qmake/build-TinyOrm-Desktop_Qt_5_15_2_GCC_64bit_ccache-Debug/src
+pwsh -NoLogo -NoProfile -File InvokeXTimes.ps1 2 ../../../TinyOrmPlayground/TinyOrmPlayground-builds-qmake/build-TinyOrmPlayground-Desktop_Qt_5_15_2_GCC_64bit_ccache-Debug/TinyOrmPlayground
+
+ - TinyORM - run InvokeXTimes.ps1 on Linux:
+stp && sq5 && cdtq && cd build-TinyOrm-Desktop_Qt_5_15_2_GCC_64bit_ccache-Debug
+export LD_LIBRARY_PATH=./src:./tests/TinyUtils${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH
+export PATH=$HOME/Code/c/TinyORM/tools:$PATH
+InvokeXTimes.ps1
+pwsh -NoLogo -NoProfile -File InvokeXTimes.ps1 100
+
+
+Powershell Clang analyzers:
+---------------------------
+
+qa-lint-tinyorm-qt5.ps1 is tailor-made for TinyORM project.
+
+qa-clang-tidy.ps1, qa-clazy-standalone.ps1, qa-clazy-standalone-st.ps1 are more general, they can be used with any project, "-st" script calls raw clazy-standalone.exe.
+
+run-clang-tidy.ps1, run-clazy-standalone.ps1 are raw Powershell wrappers around python run-clang-tidy/run-clazy-standalone.py python scripts.
 
 
 cmake build commands:
@@ -169,6 +251,38 @@ cmake.exe -S E:/c/qMedia/TinyOrm/TinyOrm -B E:/c/qMedia/TinyOrm/TinyOrm-builds-c
 $env:Path = "E:\c\qMedia\TinyOrm\TinyOrm-builds-cmake\build-cmake;E:\c\qMedia\TinyOrm\TinyOrm-builds-cmake\build-cmake\tests\auto\utils;" + $env:Path
 
 
+TinyORM docs github pages:
+--------------------------
+
+- npm run clear
+
+Clear a Docusaurus site's generated assets, caches, build artifacts.
+We recommend running this command before reporting bugs, after upgrading versions, or anytime you have issues with your Docusaurus site.
+
+- deploy:
+
+.\dotenv.ps1
+npm run deploy; echo "Algolia Rebuild"; sleep 30; .\algolia_rebuild.ps1
+
+- local development:
+
+npm start
+npm start -- --no-open
+
+- update Algolia index by DocSearch:
+
+.\dotenv.ps1
+.\algolia_rebuild.ps1
+
+- upgrade Docusaurus npm:
+
+npm install @docusaurus/core@latest @docusaurus/plugin-ideal-image@latest @docusaurus/preset-classic@latest
+
+- upgrade Docusaurus yarn:
+
+yarn upgrade @docusaurus/core@latest @docusaurus/preset-classic@latest
+
+
 CMake Guidelines:
 -----------------
 
@@ -183,6 +297,27 @@ All are snake-case unless otherwise specified.
  - cached variables: TINY_
  - function names has the tiny_ prefix
  - compile definitions prefix by project eg. TINYORM_, TINYUTILS_
+
+
+Drop all PostgreSQL tables:
+---------------------------
+
+DROP TABLE IF EXISTS "tag_properties" CASCADE;
+DROP TABLE IF EXISTS "tag_torrent" CASCADE;
+DROP TABLE IF EXISTS "torrent_tags" CASCADE;
+DROP TABLE IF EXISTS "roles" CASCADE;
+DROP TABLE IF EXISTS "role_user" CASCADE;
+DROP TABLE IF EXISTS "users" CASCADE;
+DROP TABLE IF EXISTS "user_phones" CASCADE;
+DROP TABLE IF EXISTS "settings" CASCADE;
+DROP TABLE IF EXISTS "torrents" CASCADE;
+DROP TABLE IF EXISTS "torrent_peers" CASCADE;
+DROP TABLE IF EXISTS "torrent_previewable_files" CASCADE;
+DROP TABLE IF EXISTS "torrent_previewable_file_properties" CASCADE;
+DROP TABLE IF EXISTS "file_property_properties" CASCADE;
+DROP TABLE IF EXISTS "migrations" CASCADE;
+DROP TABLE IF EXISTS "migrations_example" CASCADE;
+DROP TABLE IF EXISTS "migrations_unit_testing" CASCADE;
 
 
 UBSan:
@@ -292,6 +427,29 @@ QHash<QString, QVariant> config {
                                                      "true")},
     {"check_database_exists",   true},
 };
+
+
+QtCreator common CMake options:
+-------------------------------
+
+-G Ninja
+-D CMAKE_BUILD_TYPE:STRING=Debug
+-D BUILD_TESTS:BOOL=OFF
+-D MATCH_EQUAL_EXPORTED_BUILDTREE:BOOL=ON
+-D MYSQL_PING:BOOL=ON
+-D ORM:BOOL=OFF
+-D TOM:BOOL=ON
+-D TOM_EXAMPLE:BOOL=ON
+-D TOM_MIGRATIONS_DIR:PATH=database/migrations
+-D VERBOSE_CONFIGURE:BOOL=OFF
+-D CMAKE_VERBOSE_MAKEFILE:BOOL=OFF
+-D CMAKE_DISABLE_PRECOMPILE_HEADERS:BOOL=OFF
+-D CMAKE_EXPORT_COMPILE_COMMANDS:BOOL=OFF
+-D CMAKE_PROJECT_INCLUDE_BEFORE:PATH=%{IDE:ResourcePath}/package-manager/auto-setup.cmake
+-D QT_QMAKE_EXECUTABLE:STRING=%{Qt:qmakeExecutable}
+-D CMAKE_PREFIX_PATH:STRING=%{Qt:QT_INSTALL_PREFIX}
+-D CMAKE_C_COMPILER:STRING=%{Compiler:Executable:C}
+-D CMAKE_CXX_COMPILER:STRING=%{Compiler:Executable:Cxx}
 
 
 DatabaseConnection debug code:
@@ -645,6 +803,41 @@ EntityManager::createConnection(const QVariantHash &config)
 #endif
 
 
+Check whether first data member in BaseCommand is QString (unsuccessful):
+---
+
+struct CommandDefinition
+{};
+
+struct BaseCommand : CommandDefinition
+{
+    QString name;
+};
+
+struct Idx1 : CommandDefinition
+{
+    int i = 0;
+    QString name;
+};
+
+template<typename T>
+concept IsQString = requires(T t)
+{
+//    requires std::same_as<decltype (std::declval<T>().name), QString>;
+    {t.name} -> std::same_as<QString &>;
+};
+
+BaseCommand i {.name = "h i"};
+Idx1 i1 {.i = 10, .name = "h i1"};
+CommandDefinition &bi = i;
+CommandDefinition &bi1 = i1;
+
+if constexpr (IsQString<decltype (reinterpret_cast<BaseCommand &>(bi))>)
+    qDebug() << "y";
+else
+    qDebug() << "n";
+
+
 Test Column expressions code, just swap groupBy
 -----
 
@@ -674,3 +867,30 @@ auto t3 = Torrent::find(1)->torrentFiles()->groupBy(s3, DB::raw(s2)).toSql();
 qDebug() << t3;
 auto t4 = Torrent::find(1)->torrentFiles()->groupBy(std::move(s3), DB::raw(s2)).toSql();
 qDebug() << t4;
+
+
+Invoke-Tests.ps1:
+-----------------
+
+- 100 times run
+  - 28. dec 2021
+    - Windows 10:
+      - Qt 5.15.2 ; msvc 16.11.8 x64
+        - debug build
+All AutoTests Execution time : 792519ms
+All AutoTests Average Execution time : 7925ms
+
+      - Qt 6.2.1 ; msvc 16.11.8 x64
+        - debug build
+All AutoTests Execution time : 986531ms
+All AutoTests Average Execution time : 9865ms
+
+    - Gentoo:
+      - Qt 5.15.2 ; GCC 11.2 x64 ccache
+        - debug build
+All AutoTests Execution time : 519138ms
+All AutoTests Average Execution time : 5191ms
+      - Qt 6.2.2 ; GCC 11.2 x64 ccache
+        - debug build
+All AutoTests Execution time : 546585ms
+All AutoTests Average Execution time : 5466ms

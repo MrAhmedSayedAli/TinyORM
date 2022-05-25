@@ -1,14 +1,16 @@
 #pragma once
-#ifndef LOG_HPP
-#define LOG_HPP
+#ifndef ORM_TYPES_LOG_HPP
+#define ORM_TYPES_LOG_HPP
+
+#include <QVariant>
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+#include "orm/macros/commonnamespace.hpp"
+
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm
 {
 namespace Types
@@ -28,7 +30,7 @@ namespace Types
         /*! Executed query. */
         QString query;
         /*! Map of bound values. */
-        QVector<QVariant> boundValues = {};
+        QVector<QVariant> boundValues;
         /*! Type of the query in log record. */
         Type type = Type::UNDEFINED;
         /*! Order of the query log record. */
@@ -41,13 +43,12 @@ namespace Types
         int affected = -1;
     };
 
-} // namespace Orm::Types
+} // namespace Types
 
     using Log = Types::Log;
 
 } // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // LOG_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TYPES_LOG_HPP

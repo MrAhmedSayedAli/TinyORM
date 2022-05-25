@@ -3,8 +3,13 @@ include(TinyResourceAndManifest)
 # Configure passed auto test
 function(tiny_configure_test name)
 
-    set(options INCLUDE_MODELS)
+    set(options INCLUDE_MIGRATIONS INCLUDE_MODELS INCLUDE_SOURCE_DIR)
     cmake_parse_arguments(PARSE_ARGV 1 TINY "${options}" "" "")
+
+    if(DEFINED TINY_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "${CMAKE_CURRENT_FUNCTION} was passed extra arguments: \
+${TINY_UNPARSED_ARGUMENTS}")
+    endif()
 
     target_precompile_headers(${name} PRIVATE
         $<$<COMPILE_LANGUAGE:CXX>:"${CMAKE_SOURCE_DIR}/include/pch.h">
@@ -41,22 +46,25 @@ function(tiny_configure_test name)
         PRIVATE
             PROJECT_TINYORM_TEST
             TINYORM_TESTS_CODE
+            # Disable debug output in release mode
+            $<$<NOT:$<CONFIG:Debug>>:QT_NO_DEBUG_OUTPUT>
     )
 
-    target_include_directories(${name} PRIVATE
-        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
-    )
+    # Currently unused
+    if(TINY_INCLUDE_SOURCE_DIR)
+        target_include_directories(${name} PRIVATE "${PROJECT_SOURCE_DIR}")
+    endif()
+
+    if(TINY_INCLUDE_MIGRATIONS)
+        target_include_directories(${name} PRIVATE "${CMAKE_SOURCE_DIR}/tests/database")
+    endif()
 
     if(TINY_INCLUDE_MODELS)
-        target_include_directories(${name} PRIVATE
-            "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tests/models>"
-        )
+        target_include_directories(${name} PRIVATE "${CMAKE_SOURCE_DIR}/tests/models")
     endif()
 
     target_link_libraries(${name}
         PRIVATE
-            Qt${QT_VERSION_MAJOR}::Core
-            Qt${QT_VERSION_MAJOR}::Sql
             Qt${QT_VERSION_MAJOR}::Test
             ${TinyOrm_ns}::${TinyUtils_target}
             ${TinyOrm_ns}::${TinyOrm_target}

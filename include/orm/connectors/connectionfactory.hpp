@@ -1,6 +1,6 @@
 #pragma once
-#ifndef CONNECTIONFACTORY_HPP
-#define CONNECTIONFACTORY_HPP
+#ifndef ORM_CONNCECTORS_CONNECTIONFACTORY_HPP
+#define ORM_CONNCECTORS_CONNECTIONFACTORY_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -9,10 +9,8 @@ TINY_SYSTEM_HEADER
 
 #include "orm/connectors/connectorinterface.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm
 {
     class DatabaseConnection;
@@ -23,9 +21,13 @@ namespace Connectors
     /*! Database connection factory. */
     class ConnectionFactory
     {
+        Q_DISABLE_COPY(ConnectionFactory)
+
     public:
         /*! Default constructor. */
-        ConnectionFactory();
+        inline ConnectionFactory() = default;
+        /*! Default destructor. */
+        inline ~ConnectionFactory() = default;
 
         /*! Establish a QSqlDatabase connection based on the configuration. */
         std::unique_ptr<DatabaseConnection>
@@ -72,10 +74,9 @@ namespace Connectors
         void validateHosts(const QStringList &hosts) const;
     };
 
-} // namespace Orm::Connectors
+} // namespace Connectors
 } // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // CONNECTIONFACTORY_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_CONNCECTORS_CONNECTIONFACTORY_HPP

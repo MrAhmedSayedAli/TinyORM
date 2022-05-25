@@ -1,16 +1,14 @@
 #pragma once
-#ifndef POSTGRESGRAMMAR_HPP
-#define POSTGRESGRAMMAR_HPP
+#ifndef ORM_QUERY_GRAMMARS_POSTGRESGRAMMAR_HPP
+#define ORM_QUERY_GRAMMARS_POSTGRESGRAMMAR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include "orm/query/grammars/grammar.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Query::Grammars
 {
 
@@ -21,7 +19,9 @@ namespace Orm::Query::Grammars
 
     public:
         /*! Default constructor. */
-        PostgresGrammar() = default;
+        inline PostgresGrammar() = default;
+        /*! Virtual destructor. */
+        inline ~PostgresGrammar() override = default;
 
         /*! Compile an insert ignore statement into SQL. */
         QString compileInsertOrIgnore(const QueryBuilder &query,
@@ -76,8 +76,7 @@ namespace Orm::Query::Grammars
     };
 
 } // namespace Orm::Query::Grammars
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // POSTGRESGRAMMAR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_QUERY_GRAMMARS_POSTGRESGRAMMAR_HPP

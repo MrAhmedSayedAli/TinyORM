@@ -1,6 +1,6 @@
 #pragma once
-#ifndef MYSQLCONNECTOR_HPP
-#define MYSQLCONNECTOR_HPP
+#ifndef ORM_CONNCECTORS_MYSQLCONNECTOR_HPP
+#define ORM_CONNCECTORS_MYSQLCONNECTOR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -8,17 +8,22 @@ TINY_SYSTEM_HEADER
 #include "orm/connectors/connector.hpp"
 #include "orm/connectors/connectorinterface.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Connectors
 {
 
     /*! MySql connector. */
     class MySqlConnector final : public ConnectorInterface, public Connector
     {
+        Q_DISABLE_COPY(MySqlConnector)
+
     public:
+        /*! Default constructor. */
+        inline MySqlConnector() = default;
+        /*! Virtual destructor. */
+        inline ~MySqlConnector() final = default;
+
         /*! Establish a database connection. */
         ConnectionName connect(const QVariantHash &config) const override;
 
@@ -62,8 +67,7 @@ namespace Orm::Connectors
     };
 
 } // namespace Orm::Connectors
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // MYSQLCONNECTOR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_CONNCECTORS_MYSQLCONNECTOR_HPP

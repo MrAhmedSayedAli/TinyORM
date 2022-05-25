@@ -1,11 +1,10 @@
 #include "orm/query/grammars/sqlitegrammar.hpp"
 
+#include "orm/macros/threadlocal.hpp"
 #include "orm/query/querybuilder.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Query::Grammars
 {
 
@@ -44,7 +43,7 @@ SQLiteGrammar::compileTruncate(const QueryBuilder &query) const
     };
 }
 
-QString SQLiteGrammar::compileLock(const QueryBuilder &) const
+QString SQLiteGrammar::compileLock(const QueryBuilder &/*unused*/) const
 {
     return QLatin1String("");
 }
@@ -70,47 +69,55 @@ QString SQLiteGrammar::compileUpdateColumns(const QVector<UpdateItem> &values) c
                                    wrap(unqualifyColumn(assignment.column)),
                                    parameter(assignment.value));
 
-    return compiledAssignments.join(COMMA);
+    return columnizeWithoutWrap(compiledAssignments);
 }
 
 const QMap<Grammar::SelectComponentType, Grammar::SelectComponentValue> &
 SQLiteGrammar::getCompileMap() const
 {
-    using std::placeholders::_1;
-    // Needed, because some compileXx() methods are overloaded
-    const auto getBind = [this](auto &&func)
+    /* Needed, because some compileXx() methods are overloaded, this way I will capture
+       'this' reference and the compileMethod rvalue reference in the following lambda
+       and simply save std::function<> in the SelectComponentValue's compileMethod data
+       member. */
+    const auto bind = [this](auto &&compileMethod)
     {
-        return std::bind(std::forward<decltype (func)>(func), this, _1);
+        return [this,
+                compileMethod = std::forward<decltype (compileMethod)>(compileMethod)]
+               (const auto &query)
+        {
+            return std::invoke(compileMethod, this, query);
+        };
     };
 
     // Pointers to a where member methods by whereType, yes yes c++ 😂
+    T_THREAD_LOCAL
     static const QMap<SelectComponentType, SelectComponentValue> cached {
-        {SelectComponentType::AGGREGATE, {getBind(&SQLiteGrammar::compileAggregate),
+        {SelectComponentType::AGGREGATE, {bind(&SQLiteGrammar::compileAggregate),
                         [this]
                         (const auto &query)
                         { return shouldCompileAggregate(query.getAggregate()); }}},
-        {SelectComponentType::COLUMNS,   {getBind(&SQLiteGrammar::compileColumns),
+        {SelectComponentType::COLUMNS,   {bind(&SQLiteGrammar::compileColumns),
                         [this]
                         (const auto &query) { return shouldCompileColumns(query); }}},
-        {SelectComponentType::FROM,      {getBind(&SQLiteGrammar::compileFrom),
+        {SelectComponentType::FROM,      {bind(&SQLiteGrammar::compileFrom),
                         [this]
                         (const auto &query)
                         { return shouldCompileFrom(query.getFrom()); }}},
-        {SelectComponentType::JOINS,     {getBind(&SQLiteGrammar::compileJoins),
+        {SelectComponentType::JOINS,     {bind(&SQLiteGrammar::compileJoins),
                         [](const auto &query) { return !query.getJoins().isEmpty(); }}},
-        {SelectComponentType::WHERES,    {getBind(&SQLiteGrammar::compileWheres),
+        {SelectComponentType::WHERES,    {bind(&SQLiteGrammar::compileWheres),
                         [](const auto &query) { return !query.getWheres().isEmpty(); }}},
-        {SelectComponentType::GROUPS,    {getBind(&SQLiteGrammar::compileGroups),
+        {SelectComponentType::GROUPS,    {bind(&SQLiteGrammar::compileGroups),
                         [](const auto &query) { return !query.getGroups().isEmpty(); }}},
-        {SelectComponentType::HAVINGS,   {getBind(&SQLiteGrammar::compileHavings),
+        {SelectComponentType::HAVINGS,   {bind(&SQLiteGrammar::compileHavings),
                         [](const auto &query) { return !query.getHavings().isEmpty(); }}},
-        {SelectComponentType::ORDERS,    {getBind(&SQLiteGrammar::compileOrders),
+        {SelectComponentType::ORDERS,    {bind(&SQLiteGrammar::compileOrders),
                         [](const auto &query) { return !query.getOrders().isEmpty(); }}},
-        {SelectComponentType::LIMIT,     {getBind(&SQLiteGrammar::compileLimit),
+        {SelectComponentType::LIMIT,     {bind(&SQLiteGrammar::compileLimit),
                         [](const auto &query) { return query.getLimit() > -1; }}},
-        {SelectComponentType::OFFSET,    {getBind(&SQLiteGrammar::compileOffset),
+        {SelectComponentType::OFFSET,    {bind(&SQLiteGrammar::compileOffset),
                         [](const auto &query) { return query.getOffset() > -1; }}},
-        {SelectComponentType::LOCK,      {getBind(&SQLiteGrammar::compileLock),
+        {SelectComponentType::LOCK,      {bind(&SQLiteGrammar::compileLock),
                         [](const auto &query) { return query.getLock().index() != 0; }}},
     };
 
@@ -120,27 +127,37 @@ SQLiteGrammar::getCompileMap() const
 const std::function<QString(const WhereConditionItem &)> &
 SQLiteGrammar::getWhereMethod(const WhereType whereType) const
 {
-    using std::placeholders::_1;
-    const auto getBind = [this](auto &&func)
+    /* Needed, because some compileXx() methods are overloaded, this way I will capture
+       'this' reference and the compileMethod rvalue reference in the following lambda
+       and simply save std::function<> in the SelectComponentValue's compileMethod data
+       member. */
+    const auto bind = [this](auto &&compileMethod)
     {
-        return std::bind(std::forward<decltype (func)>(func), this, _1);
+        return [this,
+                compileMethod = std::forward<decltype (compileMethod)>(compileMethod)]
+               (const auto &query)
+        {
+            return std::invoke(compileMethod, this, query);
+        };
     };
 
     // Pointers to a where member methods by whereType, yes yes c++ 😂
     // An order has to be the same as in enum struct WhereType
+    T_THREAD_LOCAL
     static const QVector<std::function<QString(const WhereConditionItem &)>> cached {
-        getBind(&SQLiteGrammar::whereBasic),
-        getBind(&SQLiteGrammar::whereNested),
-        getBind(&SQLiteGrammar::whereColumn),
-        getBind(&SQLiteGrammar::whereIn),
-        getBind(&SQLiteGrammar::whereNotIn),
-        getBind(&SQLiteGrammar::whereNull),
-        getBind(&SQLiteGrammar::whereNotNull),
-        getBind(&SQLiteGrammar::whereRaw),
-        getBind(&SQLiteGrammar::whereExists),
-        getBind(&SQLiteGrammar::whereNotExists),
+        bind(&SQLiteGrammar::whereBasic),
+        bind(&SQLiteGrammar::whereNested),
+        bind(&SQLiteGrammar::whereColumn),
+        bind(&SQLiteGrammar::whereIn),
+        bind(&SQLiteGrammar::whereNotIn),
+        bind(&SQLiteGrammar::whereNull),
+        bind(&SQLiteGrammar::whereNotNull),
+        bind(&SQLiteGrammar::whereRaw),
+        bind(&SQLiteGrammar::whereExists),
+        bind(&SQLiteGrammar::whereNotExists),
     };
 
+    T_THREAD_LOCAL
     static const auto size = cached.size();
 
     // Check if whereType is in the range, just for sure 😏
@@ -185,6 +202,5 @@ QString SQLiteGrammar::compileDeleteWithJoinsOrLimit(QueryBuilder &query) const
 }
 
 } // namespace Orm::Query::Grammars
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

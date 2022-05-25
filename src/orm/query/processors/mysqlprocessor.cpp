@@ -1,15 +1,14 @@
 #include "orm/query/processors/mysqlprocessor.hpp"
 
-#include <QtSql/QSqlQuery>
 #include <QVariant>
+#include <QtSql/QSqlQuery>
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Query::Processors
 {
 
+// CUR schema, duplicate silverqx
 QStringList MySqlProcessor::processColumnListing(QSqlQuery &query) const
 {
     QStringList columns;
@@ -21,6 +20,5 @@ QStringList MySqlProcessor::processColumnListing(QSqlQuery &query) const
 }
 
 } // namespace Orm::Query::Processors
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

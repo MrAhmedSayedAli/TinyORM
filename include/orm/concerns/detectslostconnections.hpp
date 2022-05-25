@@ -1,14 +1,19 @@
 #pragma once
-#ifndef DETECTSLOSTCONNECTIONS_HPP
-#define DETECTSLOSTCONNECTIONS_HPP
+#ifndef ORM_CONCERNS_DETECTSLOSTCONNECTIONS_HPP
+#define ORM_CONCERNS_DETECTSLOSTCONNECTIONS_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+#include <QtGlobal>
+
+#include "orm/macros/commonnamespace.hpp"
+#include "orm/macros/export.hpp"
+
+TINYORM_BEGIN_COMMON_NAMESPACE
+
+class QSqlError;
+
 namespace Orm
 {
 
@@ -21,27 +26,25 @@ namespace Concerns
 {
 
     /*! Detect lost connection by passed exception message. */
-    class DetectsLostConnections
+    class SHAREDLIB_EXPORT DetectsLostConnections
     {
-        /*! Deleted copy constructor. */
-        DetectsLostConnections(const DetectsLostConnections &) = delete;
-        /*! Deleted copy assignment operator. */
-        DetectsLostConnections &operator=(const DetectsLostConnections &) = delete;
+        Q_DISABLE_COPY(DetectsLostConnections)
 
     public:
         /*! Default constructor. */
-        DetectsLostConnections() = default;
+        inline DetectsLostConnections() = default;
         /*! Virtual destructor, to pass -Weffc++. */
         inline virtual ~DetectsLostConnections() = default;
 
         /*! Determine if the given exception was caused by a lost connection. */
         bool causedByLostConnection(const Exceptions::SqlError &e) const;
+        /*! Determine if the given exception was caused by a lost connection. */
+        bool causedByLostConnection(const QSqlError &e) const;
     };
 
-} // namespace Orm::Concerns
+} // namespace Concerns
 } // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // DETECTSLOSTCONNECTIONS_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_CONCERNS_DETECTSLOSTCONNECTIONS_HPP

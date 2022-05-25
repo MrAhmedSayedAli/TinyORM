@@ -1,16 +1,14 @@
 #pragma once
-#ifndef RELATIONNOTFOUNDERROR_HPP
-#define RELATIONNOTFOUNDERROR_HPP
+#ifndef ORM_TINY_EXCEPTIONS_RELATIONNOTFOUNDERROR_HPP
+#define ORM_TINY_EXCEPTIONS_RELATIONNOTFOUNDERROR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include "orm/exceptions/runtimeerror.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny::Exceptions
 {
 
@@ -32,39 +30,38 @@ namespace Orm::Tiny::Exceptions
                               From from = From::UNDEFINED);
 
         /*! Get the affected TinyORM model. */
-        const QString &getModel() const;
+        inline const QString &getModel() const;
         /*! Get the name of the relation. */
-        const QString &getRelation() const;
+        inline const QString &getRelation() const;
 
     protected:
         /*! The name of the affected TinyORM model.. */
-        const QString m_model;
+        QString m_model;
         /*! The name of the relation. */
-        const QString m_relation;
+        QString m_relation;
         /*! Exception message will be generated on the base of this data member. */
-        const From m_from;
+        From m_from;
 
     private:
         /*! Format the error message. */
         QString formatMessage(const QString &model, const QString &relation,
-                              const From from) const;
+                              From from) const;
     };
 
-    inline const QString &
+    const QString &
     RelationNotFoundError::getModel() const
     {
         return m_model;
     }
 
-    inline const QString &
+    const QString &
     RelationNotFoundError::getRelation() const
     {
         return m_relation;
     }
 
-} // namespace Orm::Tiny
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Tiny::Exceptions
 
-#endif // RELATIONNOTFOUNDERROR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_EXCEPTIONS_RELATIONNOTFOUNDERROR_HPP

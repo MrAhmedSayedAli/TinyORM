@@ -96,6 +96,12 @@ DESTINATION is encountered")
         CMAKE_MAP_IMPORTED_CONFIG_DEBUG
     )
 
+    unset(debug_helpString)
+    unset(minSizeRel_helpString)
+    unset(relWithDebInfo_helpString)
+    unset(release_helpString)
+    unset(helpStringTemplate)
+
     if(VERBOSE_CONFIGURE)
         message(STATUS "${TinyOrm_ns}: Set up defaults for \
 CMAKE_MAP_IMPORTED_CONFIG_<CONFIG> to avoid link a release type builds against a debug \
@@ -116,6 +122,18 @@ build
     # Used to save and restore original content of the CMAKE_RC_FLAGS variable
     set(TINY_RC_FLAGS_BACKUP "")
 
+    # Add -nologo to the CMAKE_RC_FLAGS if it does not already contain it
+    if(MSVC AND NOT CMAKE_RC_FLAGS MATCHES " *[-/]nologo *")
+        get_property(help_string CACHE CMAKE_RC_FLAGS PROPERTY HELPSTRING)
+        if(NOT help_string)
+            set(help_string "Flags for Windows Resource Compiler during all build types.")
+        endif()
+
+        set(CMAKE_RC_FLAGS "${CMAKE_RC_FLAGS} -nologo" CACHE STRING ${help_string} FORCE)
+    endif()
+
+    unset(help_string)
+
 endmacro()
 
 # Initialize Tiny variables, early init.
@@ -125,10 +143,48 @@ macro(tiny_init_tiny_variables_pre)
     # a main package name
     set(TinyOrm_ns TinyOrm)
     set(TinyUtils_ns TinyUtils)
+    set(TomExample_ns tom)
+    set(TomTestData_ns tom_testdata)
     # Target names
     set(CommonConfig_target CommonConfig)
     set(TinyOrm_target TinyOrm)
     set(TinyUtils_target TinyUtils)
+    set(TomExample_target tom)
+    set(TomTestData_target tom_testdata)
+    # User should see Tom_target in the tom.rc.in not TomExample_target that is
+    # the reason of this mapping, also applies in the version/CMakeLists.txt
+    set(Tom_target ${TomExample_target})
+    # Targets' folders
+    set(TomExample_folder examples/tom)
+    # Tom migrations folder for the make:migration command
+    set(TomMigrations_folder database/migrations)
+    # Tom seeders folder for the make:seeder command
+    set(TomSeeders_folder database/seeders)
+
+    get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+    set(TINY_IS_MULTI_CONFIG "${isMultiConfig}" CACHE INTERNAL
+        "True when using a multi-configuration generator")
+    unset(isMultiConfig)
+
+    # Allow using an environment variable VCPKG_ROOT instead of CMAKE_TOOLCHAIN_FILE
+    # command-line option
+    if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+        set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+            CACHE STRING "Path to toolchain file supplied to cmake.")
+    endif()
+    # GitHub Actions defines VCPKG_INSTALLATION_ROOT instead of VCPKG_ROOT
+    if(DEFINED ENV{VCPKG_INSTALLATION_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+        set(CMAKE_TOOLCHAIN_FILE
+            "$ENV{VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake"
+            CACHE STRING "Path to toolchain file supplied to cmake.")
+    endif()
+
+    # Vcpkg CMake integration ignores VCPKG_DEFAULT_TRIPLET env. variable, but acceppts
+    # VCPKG_TARGET_TRIPLET command-line option
+    if(DEFINED ENV{VCPKG_DEFAULT_TRIPLET} AND NOT DEFINED VCPKG_TARGET_TRIPLET)
+        set(VCPKG_TARGET_TRIPLET "$ENV{VCPKG_DEFAULT_TRIPLET}" CACHE STRING
+            "Change the default triplet for CMake Integration.")
+    endif()
 
 endmacro()
 
@@ -148,19 +204,38 @@ macro(tiny_init_tiny_variables)
             set(TINY_PATH_SEPARATOR ":")
         endif()
 
-        set(TINY_TESTS_ENV "${CMAKE_BINARY_DIR}${TINY_PATH_SEPARATOR}\
-${CMAKE_BINARY_DIR}/tests/TinyUtils${TINY_PATH_SEPARATOR}$ENV{PATH}")
+        # Escaped environment path
+        string(REPLACE ";" "\;" TINY_TESTS_ENV "$ENV{PATH}")
 
-        string(REPLACE ";" "\;" TINY_TESTS_ENV "${TINY_TESTS_ENV}")
+        # Prepend VCPKG environment (installed folder)
+        if(TINY_VCPKG)
+            string(PREPEND TINY_TESTS_ENV "\
+$<SHELL_PATH:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>/\
+${CMAKE_INSTALL_BINDIR}>${TINY_PATH_SEPARATOR}\
+$<SHELL_PATH:${CMAKE_BINARY_DIR}/tests/${TinyUtils_ns}>${TINY_PATH_SEPARATOR}")
+
+        # Prepend TinyOrm and TinyUtils library folders
+        else()
+            # Multi-config generators have different folders structure
+            if(TINY_IS_MULTI_CONFIG)
+                string(PREPEND TINY_TESTS_ENV "\
+$<SHELL_PATH:${CMAKE_BINARY_DIR}/$<CONFIG>>${TINY_PATH_SEPARATOR}\
+$<SHELL_PATH:${CMAKE_BINARY_DIR}/tests/${TinyUtils_ns}/$<CONFIG>>${TINY_PATH_SEPARATOR}")
+            else()
+                string(PREPEND TINY_TESTS_ENV "\
+$<SHELL_PATH:${CMAKE_BINARY_DIR}>${TINY_PATH_SEPARATOR}\
+$<SHELL_PATH:${CMAKE_BINARY_DIR}/tests/${TinyUtils_ns}>${TINY_PATH_SEPARATOR}")
+            endif()
+        endif()
     endif()
 
     set(TINY_BUILD_GENDIR "${TinyOrm_ns}_generated" CACHE INTERNAL
         "Generated content in the build tree")
 
-    get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-    set(TINY_IS_MULTI_CONFIG "${isMultiConfig}" CACHE INTERNAL
-        "True when using a multi-configuration generator")
-    unset(isMultiConfig)
+    # Provide default value if not set
+    if(NOT TINY_VCPKG)
+        set(TINY_VCPKG FALSE)
+    endif()
 
     # Specifies which global constant types will be used
     if(BUILD_SHARED_LIBS AND NOT INLINE_CONSTANTS)
@@ -174,5 +249,33 @@ ${CMAKE_BINARY_DIR}/tests/TinyUtils${TINY_PATH_SEPARATOR}$ENV{PATH}")
         "Determine whether ${TinyOrm_target} library will be built with extern or inline \
 constants")
     unset(tinyExternConstants)
+
+endmacro()
+
+# Initialize the default migrations path for the make:migration command
+macro(tiny_init_tom_migrations_dir)
+
+    if(TOM_EXAMPLE)
+        # Provide the default migrations path for the make:migration command
+        if(NOT DEFINED TOM_MIGRATIONS_DIR)
+            # Relative path to the pwd
+            set(TOM_MIGRATIONS_DIR ${TomMigrations_folder})
+        endif()
+
+        # Provide the default seeders path for the make:seeders command
+        if(NOT DEFINED TOM_SEEDERS_DIR)
+            # Relative path to the pwd
+            set(TOM_SEEDERS_DIR ${TomSeeders_folder})
+        endif()
+
+        # Set path from the -D option or from the above default value
+        set(TOM_MIGRATIONS_DIR "${TOM_MIGRATIONS_DIR}" CACHE PATH
+            "Default migrations path for the make:migration command")
+
+        set(TOM_SEEDERS_DIR "${TOM_SEEDERS_DIR}" CACHE PATH
+            "Default seeders path for the make:seeder command")
+
+        mark_as_advanced(TOM_MIGRATIONS_DIR TOM_SEEDERS_DIR)
+    endif()
 
 endmacro()

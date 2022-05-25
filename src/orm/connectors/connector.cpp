@@ -1,18 +1,24 @@
 #include "orm/connectors/connector.hpp"
 
+#include "orm/constants.hpp"
 #include "orm/exceptions/sqlerror.hpp"
 #include "orm/support/configurationoptionsparser.hpp"
 #include "orm/utils/type.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+using Orm::Constants::database_;
+using Orm::Constants::driver_;
+using Orm::Constants::host_;
+using Orm::Constants::password_;
+using Orm::Constants::port_;
+using Orm::Constants::username_;
+
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Connectors
 {
 
 const QString Connector::m_configureErrorMessage =
-        "Connection configuration statement in %1() failed.";
+        QStringLiteral("Connection configuration statement in %1() failed.");
 
 QSqlDatabase
 Connector::createConnection(const QString &name, const QVariantHash &config,
@@ -41,7 +47,7 @@ Connector::createQSqlDatabaseConnection(const QString &name, const QVariantHash 
 
     if (!db.open())
         throw Exceptions::SqlError(
-                QStringLiteral("Open databse connection in %1() failed.")
+                QStringLiteral("Failed to open database connection in %1().")
                 .arg(__tiny_func__),
                 db.lastError());
 
@@ -69,18 +75,18 @@ Connector::addQSqlDatabaseConnection(const QString &name, const QVariantHash &co
 {
     QSqlDatabase db;
 
-    db = QSqlDatabase::addDatabase(config["driver"].value<QString>(), name);
+    db = QSqlDatabase::addDatabase(config[driver_].value<QString>(), name);
 
-    db.setHostName(config["host"].value<QString>());
+    db.setHostName(config[host_].value<QString>());
 
-    if (config.contains("database"))
-        db.setDatabaseName(config["database"].value<QString>());
-    if (config.contains("username"))
-        db.setUserName(config["username"].value<QString>());
-    if (config.contains("password"))
-        db.setPassword(config["password"].value<QString>());
-    if (config.contains("port"))
-        db.setPort(config["port"].value<int>());
+    if (config.contains(database_))
+        db.setDatabaseName(config[database_].value<QString>());
+    if (config.contains(username_))
+        db.setUserName(config[username_].value<QString>());
+    if (config.contains(password_))
+        db.setPassword(config[password_].value<QString>());
+    if (config.contains(port_))
+        db.setPort(config[port_].value<int>());
 
     db.setConnectOptions(options);
 
@@ -99,6 +105,5 @@ Connector::tryAgainIfCausedByLostConnection(
 }
 
 } // namespace Orm::Connectors
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

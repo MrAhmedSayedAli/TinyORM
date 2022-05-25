@@ -13,14 +13,38 @@
 
 #include "databases.hpp"
 
-using namespace Orm::Constants;
+using Models::FilePropertyProperty;
+using Models::Tag;
+using Models::Tagged;
+using Models::Torrent;
+using Models::TorrentEager;
+using Models::TorrentEager_Failed;
+using Models::TorrentEager_WithDefault;
+using Models::TorrentPeer;
+using Models::TorrentPeerEager;
+using Models::TorrentPeerEager_NoRelations;
+using Models::TorrentPreviewableFile;
+using Models::TorrentPreviewableFileEager;
+using Models::TorrentPreviewableFileEager_WithDefault;
+using Models::TorrentPreviewableFileProperty;
+using Models::TorrentPreviewableFilePropertyEager;
+
+using Orm::Constants::AND;
+using Orm::Constants::CREATED_AT;
+using Orm::Constants::ID;
+using Orm::Constants::NAME;
+using Orm::Constants::LIKE;
+using Orm::Constants::SIZE;
+using Orm::Constants::UPDATED_AT;
 
 using Orm::Exceptions::RuntimeError;
 using Orm::One;
 using Orm::QueryBuilder;
+
 using Orm::Tiny::ConnectionOverride;
 using Orm::Tiny::Exceptions::RelationNotFoundError;
 using Orm::Tiny::Exceptions::RelationNotLoadedError;
+using Orm::Tiny::Relations::Pivot;
 using Orm::Tiny::Relations::Relation;
 using Orm::Tiny::TinyBuilder;
 
@@ -1394,7 +1418,7 @@ void tst_Model_Relations::refresh_LazyLoad_OnlyRelations() const
             torrent->getRelationValue<TorrentPreviewableFile>("torrentFiles");
     auto filepathOriginal =
             filesOriginal.first()->getAttribute("filepath");
-    auto peerOriginal =
+    auto *peerOriginal =
             torrent->getRelationValue<TorrentPeer, One>("torrentPeer");
     auto seedsOriginal =
             peerOriginal->getAttribute("seeds");
@@ -1445,7 +1469,7 @@ void tst_Model_Relations::refresh_LazyLoad_OnlyRelations() const
     auto filesRefreshed =
             torrent->getRelationValue<TorrentPreviewableFile>("torrentFiles");
     auto filepathRefreshed = filesRefreshed.first()->getAttribute("filepath");
-    auto peerRefreshed =
+    auto *peerRefreshed =
             torrent->getRelationValue<TorrentPeer, One>("torrentPeer");
     auto seedsRefreshed = peerRefreshed->getAttribute("seeds");
     QVERIFY(filepathOriginal == filepathRefreshed);
@@ -1633,8 +1657,7 @@ void tst_Model_Relations::where_WithCallback() const
     auto files = Torrent::find(5)->torrentFiles()
                  ->where([](auto &query)
     {
-        return query.whereEq(ID, 6)
-                .orWhereEq("file_index", 2);
+        query.whereEq(ID, 6).orWhereEq("file_index", 2);
     })
                  .get();
 
@@ -1659,8 +1682,7 @@ void tst_Model_Relations::orWhere_WithCallback() const
                  ->where("progress", ">", 990)
                  .orWhere([](auto &query)
     {
-        return query.whereEq(ID, 8)
-                .whereEq("file_index", 2);
+        query.whereEq(ID, 8).whereEq("file_index", 2);
     })
                  .get();
 
@@ -1794,7 +1816,7 @@ void tst_Model_Relations::withDefaultModel_LazyLoad_AttributesVector_HasOne() co
     QCOMPARE(fileProperty->getAttributes().size(), 3);
     QCOMPARE((*fileProperty)["previewable_file_id"], QVariant(7));
     QCOMPARE((*fileProperty)[NAME], QVariant("default_fileproperty_name"));
-    QCOMPARE((*fileProperty)["size"], QVariant(321));
+    QCOMPARE((*fileProperty)[SIZE], QVariant(321));
 }
 
 void tst_Model_Relations::withDefaultModel_LazyLoad_Bool_BelongsTo() const
@@ -1832,7 +1854,7 @@ void tst_Model_Relations::withDefaultModel_LazyLoad_AttributesVector_BelongsTo()
     QCOMPARE(typeid (Torrent *), typeid (torrent));
     QCOMPARE(torrent->getAttributes().size(), 2);
     QCOMPARE((*torrent)[NAME], QVariant("default_torrent_name"));
-    QCOMPARE((*torrent)["size"], QVariant(123));
+    QCOMPARE((*torrent)[SIZE], QVariant(123));
 }
 
 void tst_Model_Relations::withDefaultModel_EagerLoad_Bool_HasOne() const
@@ -1874,7 +1896,7 @@ void tst_Model_Relations::withDefaultModel_EagerLoad_AttributesVector_HasOne() c
     QCOMPARE(fileProperty->getAttributes().size(), 3);
     QCOMPARE((*fileProperty)["previewable_file_id"], QVariant(7));
     QCOMPARE((*fileProperty)[NAME], QVariant("default_fileproperty_name"));
-    QCOMPARE((*fileProperty)["size"], QVariant(321));
+    QCOMPARE((*fileProperty)[SIZE], QVariant(321));
 }
 
 void tst_Model_Relations::withDefaultModel_EagerLoad_Bool_BelongsTo() const
@@ -1914,7 +1936,7 @@ void tst_Model_Relations::withDefaultModel_EagerLoad_AttributesVector_BelongsTo(
     QCOMPARE(typeid (TorrentEager_WithDefault *), typeid (torrent));
     QCOMPARE(torrent->getAttributes().size(), 2);
     QCOMPARE((*torrent)[NAME], QVariant("default_torrent_name"));
-    QCOMPARE((*torrent)["size"], QVariant(123));
+    QCOMPARE((*torrent)[SIZE], QVariant(123));
 }
 
 void tst_Model_Relations::has_Basic_QString_OnHasMany() const
@@ -1997,7 +2019,8 @@ void tst_Model_Relations::has_Count_UniquePtr_OnHasMany() const
     Torrent dummyModel;
 
     // Ownership of a unique_ptr()
-    auto relation = Relation<Torrent, TorrentPreviewableFile>::noConstraints(
+    auto relation =
+            Relation<Torrent, TorrentPreviewableFile>::noConstraints(
                 [&dummyModel]()
     {
         return std::invoke(&Torrent::torrentFiles, dummyModel);

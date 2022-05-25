@@ -1,20 +1,18 @@
 #pragma once
-#ifndef BASEPIVOT_HPP
-#define BASEPIVOT_HPP
+#ifndef ORM_TINY_RELATIONS_BASEPIVOT_HPP
+#define ORM_TINY_RELATIONS_BASEPIVOT_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include "orm/tiny/model.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny::Relations
 {
 
-    /*! The tag for the Pivot model. */
+    /*! Tag for the Pivot model. */
     class IsPivotModel
     {};
 
@@ -22,6 +20,9 @@ namespace Orm::Tiny::Relations
     template<typename PivotModel>
     class BasePivot : public Model<PivotModel>, public IsPivotModel
     {
+        /*! Alias for the string utils. */
+        using StringUtils = Orm::Tiny::Utils::String;
+
     public:
         friend Model<PivotModel>;
 
@@ -55,7 +56,7 @@ namespace Orm::Tiny::Relations
         /*! Delete the pivot model record from the database. */
         bool remove();
         /*! Delete the pivot model record from the database (alias). */
-        bool deleteModel();
+        inline bool deleteModel();
 
         /*! Set the keys for a save update query. */
         TinyBuilder<PivotModel> &
@@ -86,13 +87,14 @@ namespace Orm::Tiny::Relations
         /*! Indicates if the ID is auto-incrementing. */
         bool u_incrementing = false;
         /*! The attributes that aren't mass assignable. */
-        inline static QStringList u_guarded = {};
+        T_THREAD_LOCAL
+        inline static QStringList u_guarded;
 
         /* AsPivot */
         /*! The name of the foreign key column. */
-        QString m_foreignKey = {};
+        QString m_foreignKey;
         /*! The name of the "other key" column. */
-        QString m_relatedKey = {};
+        QString m_relatedKey;
     };
 
     template<typename PivotModel>
@@ -196,11 +198,11 @@ namespace Orm::Tiny::Relations
         // FEATURE events silverqx
 //        fireModelEvent("deleted", false);
 
-        return affected > 0 ? true : false;
+        return affected > 0;
     }
 
     template<typename PivotModel>
-    inline bool BasePivot<PivotModel>::deleteModel()
+    bool BasePivot<PivotModel>::deleteModel()
     {
         return this->model().remove();
     }
@@ -235,9 +237,9 @@ namespace Orm::Tiny::Relations
 
         // Get singularizes snake-case table name
         if (table.isEmpty())
-            return Utils::String::singular(
-                        Utils::String::toSnake(
-                            Utils::Type::classPureBasename<PivotModel>()));
+            return StringUtils::singular(
+                        StringUtils::snake(
+                            Orm::Utils::Type::classPureBasename<PivotModel>()));
 
         return table;
     }
@@ -272,8 +274,7 @@ namespace Orm::Tiny::Relations
     }
 
 } // namespace Orm::Tiny::Relations
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // BASEPIVOT_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_RELATIONS_BASEPIVOT_HPP

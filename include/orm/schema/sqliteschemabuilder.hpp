@@ -1,31 +1,32 @@
 #pragma once
-#ifndef SQLITESCHEMABUILDER_HPP
-#define SQLITESCHEMABUILDER_HPP
+#ifndef ORM_SCHEMA_SQLITESCHEMABUILDER_HPP
+#define ORM_SCHEMA_SQLITESCHEMABUILDER_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include "orm/schema/schemabuilder.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
-namespace Orm::Schema
+TINYORM_BEGIN_COMMON_NAMESPACE
+
+namespace Orm::SchemaNs
 {
 
-    /*! SQLite schema repository class. */
-    class SHAREDLIB_EXPORT SQLiteSchemaBuilder : public SchemaBuilder
+    /*! SQLite schema builder class. */
+    class SQLiteSchemaBuilder : public SchemaBuilder
     {
         Q_DISABLE_COPY(SQLiteSchemaBuilder)
 
     public:
+        /*! Inherit constructors. */
         using SchemaBuilder::SchemaBuilder;
+
+        /*! Virtual destructor. */
+        inline ~SQLiteSchemaBuilder() override = default;
     };
 
-} // namespace Orm::Schema
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::SchemaNs
 
-#endif // SQLITESCHEMABUILDER_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_SCHEMA_SQLITESCHEMABUILDER_HPP

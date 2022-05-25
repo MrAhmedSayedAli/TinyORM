@@ -1,34 +1,38 @@
 #pragma once
-#ifndef SUPPORTSDEFAULTMODELS_HPP
-#define SUPPORTSDEFAULTMODELS_HPP
+#ifndef ORM_TINY_RELATIONS_CONCERNS_SUPPORTSDEFAULTMODELS_HPP
+#define ORM_TINY_RELATIONS_CONCERNS_SUPPORTSDEFAULTMODELS_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
-// FEATURE orm types, only AttributeItem used silverqx
-#include "orm/ormtypes.hpp"
+#include "orm/macros/threadlocal.hpp"
+// FEATURE tiny types, only AttributeItem used silverqx
+#include "orm/tiny/tinytypes.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny::Relations
 {
     template<class Model, class Related>
     class Relation;
 
-namespace Concerns {
+namespace Concerns
+{
 
     /*! Default models. */
     template<class Model, class Related>
     class SupportsDefaultModels
     {
-        using AttributeItem = Orm::AttributeItem;
+        Q_DISABLE_COPY(SupportsDefaultModels)
+
+        using AttributeItem = Orm::Tiny::AttributeItem;
 //        using Callback      = std::function<void(Related &, const Model &)>;
 
     public:
+        /*! Default constructor. */
+        inline SupportsDefaultModels() = default;
         /*! Pure virtual destructor. */
-        virtual ~SupportsDefaultModels() = 0;
+        inline virtual ~SupportsDefaultModels() = 0;
 
         /*! Return a new model instance in case the relationship does not exist. */
         Relation<Model, Related> &withDefault(bool value = true);
@@ -51,11 +55,11 @@ namespace Concerns {
 
     private:
         /*! Return cached reference to the base relation instance. */
-        Relation<Model, Related> &relation();
+        inline Relation<Model, Related> &relation();
     };
 
     template<class Model, class Related>
-    inline SupportsDefaultModels<Model, Related>::~SupportsDefaultModels() = default;
+    SupportsDefaultModels<Model, Related>::~SupportsDefaultModels() = default;
 
     template<class Model, class Related>
     Relation<Model, Related> &
@@ -126,18 +130,18 @@ namespace Concerns {
     }
 
     template<class Model, class Related>
-    inline Relation<Model, Related> &
+    Relation<Model, Related> &
     SupportsDefaultModels<Model, Related>::relation()
     {
+        T_THREAD_LOCAL
         static auto &cached = dynamic_cast<Relation<Model, Related> &>(*this);
 
         return cached;
     }
 
-} // namespace Orm::Tiny::Relations::Concerns
+} // namespace Concerns
 } // namespace Orm::Tiny::Relations
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // SUPPORTSDEFAULTMODELS_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_RELATIONS_CONCERNS_SUPPORTSDEFAULTMODELS_HPP

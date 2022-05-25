@@ -2,10 +2,16 @@
 #ifndef TINYUTILS_DATABASES_HPP
 #define TINYUTILS_DATABASES_HPP
 
-#include "orm/configuration.hpp"
-#include "orm/connectioninterface.hpp"
+#include <memory>
+
+#include "orm/support/databaseconfiguration.hpp"
 
 #include "export.hpp"
+
+namespace Orm
+{
+    class DatabaseManager;
+}
 
 namespace TestUtils
 {
@@ -14,7 +20,9 @@ namespace TestUtils
     {
         Q_DISABLE_COPY(Databases)
 
-        using ConfigurationsType = Orm::Configuration::ConfigurationsType;
+        /*! Type used for Database Connections map. */
+        using ConfigurationsType = Orm::Support::DatabaseConfiguration
+                                               ::ConfigurationsType;
 
     public:
         /*! MySQL connection name. */
@@ -29,6 +37,12 @@ namespace TestUtils
         createConnections(const QStringList &connections = {});
         /*! Create database connection. */
         static QString createConnection(const QString &connection);
+
+        /*! Check whether all env. variables are empty. */
+        static bool allEnvVariablesEmpty(const std::vector<const char *> &envVariables);
+
+        /*! Get a reference to the database manager. */
+        static const std::shared_ptr<Orm::DatabaseManager> &manager();
 
     private:
         /*! Obtain configurations for the given connection names. */
@@ -49,13 +63,10 @@ namespace TestUtils
         static std::pair<std::reference_wrapper<const QVariantHash>, bool>
         postgresConfiguration();
 
-        /*! Throw exception when connections were already initialized. */
-        static void checkInitialized();
-
-        /*! Determines whether connections were initialized. */
-        inline static bool m_initialized = false;
+        /*! Throw exception when database connections were already initialized. */
+        static void throwIfConnectionsInitialized();
     };
 
-}
+} // namespace TestUtils
 
 #endif // TINYUTILS_DATABASES_HPP

@@ -6,12 +6,19 @@
 
 #include "databases.hpp"
 
-using namespace Orm::Constants;
+using Orm::Constants::ASC;
+using Orm::Constants::DESC;
+using Orm::Constants::ID;
+using Orm::Constants::LEFT;
+using Orm::Constants::LIKE;
+using Orm::Constants::NAME;
+using Orm::Constants::SIZE;
 
+using Orm::DB;
 using Orm::Query::Expression;
 
-using Raw = Orm::Query::Expression;
 using QueryBuilder = Orm::Query::Builder;
+using Raw = Orm::Query::Expression;
 
 using TestUtils::Databases;
 
@@ -143,12 +150,13 @@ private slots:
     void remove() const;
     void remove_WithExpression() const;
 
+// NOLINTNEXTLINE(readability-redundant-access-specifiers)
 private:
     /*! Create QueryBuilder instance for the given connection. */
-    QSharedPointer<QueryBuilder> createQuery() const;
+    [[nodiscard]] QSharedPointer<QueryBuilder> createQuery() const;
 
     /*! Connection name used in this test case. */
-    QString m_connection = {};
+    QString m_connection {};
 };
 
 void tst_MySql_QueryBuilder::initTestCase()
@@ -169,6 +177,7 @@ void tst_MySql_QueryBuilder::get() const
             connection.query()->from("torrents").get({ID, NAME});
         });
 
+        QVERIFY(!log.isEmpty());
         const auto &firstLog = log.first();
 
         QCOMPARE(log.size(), 1);
@@ -183,6 +192,7 @@ void tst_MySql_QueryBuilder::get() const
             connection.query()->from("torrents").get();
         });
 
+        QVERIFY(!log.isEmpty());
         const auto &firstLog = log.first();
 
         QCOMPARE(log.size(), 1);
@@ -199,6 +209,7 @@ void tst_MySql_QueryBuilder::get_ColumnExpression() const
         connection.query()->from("torrents").get({Raw(ID), NAME});
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -214,6 +225,7 @@ void tst_MySql_QueryBuilder::find() const
         connection.query()->from("torrents").find(3, {ID, NAME});
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -231,6 +243,7 @@ void tst_MySql_QueryBuilder::find_ColumnAndValueExpression() const
             connection.query()->from("torrents").find(3, {ID, Raw(NAME)});
         });
 
+        QVERIFY(!log.isEmpty());
         const auto &firstLog = log.first();
 
         QCOMPARE(log.size(), 1);
@@ -246,6 +259,7 @@ void tst_MySql_QueryBuilder::find_ColumnAndValueExpression() const
             connection.query()->from("torrents").find(Raw("1 + 3"), {ID, Raw(NAME)});
         });
 
+        QVERIFY(!log.isEmpty());
         const auto &firstLog = log.first();
 
         QCOMPARE(log.size(), 1);
@@ -262,6 +276,7 @@ void tst_MySql_QueryBuilder::first() const
         connection.query()->from("torrents").first({ID, NAME});
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -277,6 +292,7 @@ void tst_MySql_QueryBuilder::first_ColumnExpression() const
         connection.query()->from("torrents").first({ID, Raw(NAME)});
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -292,6 +308,7 @@ void tst_MySql_QueryBuilder::value() const
         connection.query()->from("torrents").value(NAME);
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -307,6 +324,7 @@ void tst_MySql_QueryBuilder::value_ColumnExpression() const
         connection.query()->from("torrents").value(Raw(NAME));
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -322,6 +340,7 @@ void tst_MySql_QueryBuilder::count() const
         connection.query()->from("torrents").count();
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -335,9 +354,10 @@ void tst_MySql_QueryBuilder::count_Distinct() const
     {
         auto log = DB::connection(m_connection).pretend([](auto &connection)
         {
-            connection.query()->from("torrents").distinct().count("size");
+            connection.query()->from("torrents").distinct().count(SIZE);
         });
 
+        QVERIFY(!log.isEmpty());
         const auto &firstLog = log.first();
 
         QCOMPARE(log.size(), 1);
@@ -350,9 +370,10 @@ void tst_MySql_QueryBuilder::count_Distinct() const
     {
         auto log = DB::connection(m_connection).pretend([](auto &connection)
         {
-            connection.query()->from("torrents").distinct().count({"size", "note"});
+            connection.query()->from("torrents").distinct().count({SIZE, "note"});
         });
 
+        QVERIFY(!log.isEmpty());
         const auto &firstLog = log.first();
 
         QCOMPARE(log.size(), 1);
@@ -365,9 +386,10 @@ void tst_MySql_QueryBuilder::count_Distinct() const
     {
         auto log = DB::connection(m_connection).pretend([](auto &connection)
         {
-            connection.query()->from("torrents").distinct({"size", "note"}).count();
+            connection.query()->from("torrents").distinct({SIZE, "note"}).count();
         });
 
+        QVERIFY(!log.isEmpty());
         const auto &firstLog = log.first();
 
         QCOMPARE(log.size(), 1);
@@ -381,9 +403,10 @@ void tst_MySql_QueryBuilder::min_Aggregate() const
 {
     auto log = DB::connection(m_connection).pretend([](auto &connection)
     {
-        connection.query()->from("torrents").min("size");
+        connection.query()->from("torrents").min(SIZE);
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -396,9 +419,10 @@ void tst_MySql_QueryBuilder::min_Aggregate_ColumnExpression() const
 {
     auto log = DB::connection(m_connection).pretend([](auto &connection)
     {
-        connection.query()->from("torrents").min(Raw("size"));
+        connection.query()->from("torrents").min(Raw(SIZE));
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -411,9 +435,10 @@ void tst_MySql_QueryBuilder::max_Aggregate() const
 {
     auto log = DB::connection(m_connection).pretend([](auto &connection)
     {
-        connection.query()->from("torrents").max("size");
+        connection.query()->from("torrents").max(SIZE);
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -426,9 +451,10 @@ void tst_MySql_QueryBuilder::sum_Aggregate() const
 {
     auto log = DB::connection(m_connection).pretend([](auto &connection)
     {
-        connection.query()->from("torrents").sum("size");
+        connection.query()->from("torrents").sum(SIZE);
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -441,9 +467,10 @@ void tst_MySql_QueryBuilder::average_Aggregate() const
 {
     auto log = DB::connection(m_connection).pretend([](auto &connection)
     {
-        connection.query()->from("torrents").avg("size");
+        connection.query()->from("torrents").avg(SIZE);
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -500,7 +527,7 @@ void tst_MySql_QueryBuilder::addSelect() const
     QCOMPARE(builder->toSql(),
              "select `id`, `name` from `torrents`");
 
-    builder->addSelect("size");
+    builder->addSelect(SIZE);
     QCOMPARE(builder->toSql(),
              "select `id`, `name`, `size` from `torrents`");
 
@@ -658,7 +685,7 @@ void tst_MySql_QueryBuilder::distinct() const
     QCOMPARE(builder->toSql(),
              "select distinct * from `torrents`");
 
-    builder->select({NAME, "size"});
+    builder->select({NAME, SIZE});
     QCOMPARE(builder->toSql(),
              "select distinct `name`, `size` from `torrents`");
 }
@@ -1087,7 +1114,7 @@ void tst_MySql_QueryBuilder::where_WithVectorValue() const
     {
         auto builder = createQuery();
 
-        builder->select("*").from("torrents").where({{ID, 3}, {"size", 10, ">"}});
+        builder->select("*").from("torrents").where({{ID, 3}, {SIZE, 10, ">"}});
         QCOMPARE(builder->toSql(),
                  "select * from `torrents` where (`id` = ? and `size` > ?)");
         QCOMPARE(builder->getBindings(),
@@ -1097,7 +1124,7 @@ void tst_MySql_QueryBuilder::where_WithVectorValue() const
     {
         auto builder = createQuery();
 
-        builder->select("*").from("torrents").where({{ID, 3}, {"size", 10, ">"}})
+        builder->select("*").from("torrents").where({{ID, 3}, {SIZE, 10, ">"}})
                 .where({{"progress", 100, ">="}});
         QCOMPARE(builder->toSql(),
                  "select * from `torrents` where (`id` = ? and `size` > ?) "
@@ -1210,7 +1237,7 @@ void tst_MySql_QueryBuilder::orWhere_WithVectorValue() const
 {
     auto builder = createQuery();
 
-    builder->select("*").from("torrents").where({{ID, 3}, {"size", 10, ">"}})
+    builder->select("*").from("torrents").where({{ID, 3}, {SIZE, 10, ">"}})
             .orWhere({{"progress", 100, ">="}});
     QCOMPARE(builder->toSql(),
              "select * from `torrents` where (`id` = ? and `size` > ?) or "
@@ -1347,7 +1374,7 @@ void tst_MySql_QueryBuilder::whereColumn() const
 
     builder->select("*").from("torrent_previewable_files")
             .whereColumn("filepath", "=", "note")
-            .whereColumn("size", ">=", "progress");
+            .whereColumn(SIZE, ">=", "progress");
     QCOMPARE(builder->toSql(),
              "select * from `torrent_previewable_files` where `filepath` = `note` "
              "and `size` >= `progress`");
@@ -1362,7 +1389,7 @@ void tst_MySql_QueryBuilder::orWhereColumn() const
 
         builder->select("*").from("torrent_previewable_files")
                 .whereColumnEq("filepath", "note")
-                .orWhereColumnEq("size", "progress");
+                .orWhereColumnEq(SIZE, "progress");
         QCOMPARE(builder->toSql(),
                  "select * from `torrent_previewable_files` where `filepath` = `note` "
                  "or `size` = `progress`");
@@ -1375,7 +1402,7 @@ void tst_MySql_QueryBuilder::orWhereColumn() const
 
         builder->select("*").from("torrent_previewable_files")
                 .whereColumnEq("filepath", "note")
-                .orWhereColumn("size", ">", "progress");
+                .orWhereColumn(SIZE, ">", "progress");
         QCOMPARE(builder->toSql(),
                  "select * from `torrent_previewable_files` where `filepath` = `note` "
                  "or `size` > `progress`");
@@ -1390,7 +1417,7 @@ void tst_MySql_QueryBuilder::orWhereColumn_ColumnExpression() const
 
     builder->select("*").from("torrent_previewable_files")
             .whereColumnEq(Raw("filepath"), Raw("`note`"))
-            .orWhereColumn(Raw("size"), ">", Raw("progress"));
+            .orWhereColumn(Raw(SIZE), ">", Raw("progress"));
     QCOMPARE(builder->toSql(),
              "select * from `torrent_previewable_files` where filepath = `note` "
              "or size > progress");
@@ -1405,7 +1432,7 @@ void tst_MySql_QueryBuilder::whereColumn_WithVectorValue() const
 
         builder->select("*").from("torrent_previewable_files")
                 .whereColumn({{"filepath", "note"},
-                              {"size", "progress", ">"}});
+                              {SIZE, "progress", ">"}});
         QCOMPARE(builder->toSql(),
                  "select * from `torrent_previewable_files` where (`filepath` = `note` "
                  "and `size` > `progress`)");
@@ -1418,7 +1445,7 @@ void tst_MySql_QueryBuilder::whereColumn_WithVectorValue() const
 
         builder->select("*").from("torrent_previewable_files")
                 .whereColumn({{"filepath", "note"},
-                              {"size", "progress", ">", "or"}});
+                              {SIZE, "progress", ">", "or"}});
         QCOMPARE(builder->toSql(),
                  "select * from `torrent_previewable_files` where (`filepath` = `note` "
                  "or `size` > `progress`)");
@@ -1434,7 +1461,7 @@ void tst_MySql_QueryBuilder::orWhereColumn_WithVectorValue() const
 
         builder->select("*").from("torrent_previewable_files").whereEq(ID, 2)
                 .orWhereColumn({{"filepath", "note"},
-                                {"size", "progress", ">"}});
+                                {SIZE, "progress", ">"}});
         QCOMPARE(builder->toSql(),
                  "select * from `torrent_previewable_files` "
                  "where `id` = ? or (`filepath` = `note` or `size` > `progress`)");
@@ -1447,7 +1474,7 @@ void tst_MySql_QueryBuilder::orWhereColumn_WithVectorValue() const
 
         builder->select("*").from("torrent_previewable_files").whereEq(ID, 2)
                 .orWhereColumn({{"filepath", "note"},
-                                {"size", "progress", ">", "and"}});
+                                {SIZE, "progress", ">", "and"}});
         QCOMPARE(builder->toSql(),
                  "select * from `torrent_previewable_files` "
                  "where `id` = ? or (`filepath` = `note` and `size` > `progress`)");
@@ -1460,7 +1487,7 @@ void tst_MySql_QueryBuilder::orWhereColumn_WithVectorValue() const
 
         builder->select("*").from("torrent_previewable_files").whereEq(ID, 2)
                 .orWhereColumn({{"filepath", "note"},
-                                {"size", "progress", ">", "or"}});
+                                {SIZE, "progress", ">", "or"}});
         QCOMPARE(builder->toSql(),
                  "select * from `torrent_previewable_files` "
                  "where `id` = ? or (`filepath` = `note` or `size` > `progress`)");
@@ -1475,7 +1502,7 @@ void tst_MySql_QueryBuilder::orWhereColumn_WithVectorValue_ColumnExpression() co
 
     builder->select("*").from("torrent_previewable_files").whereEq(ID, 2)
             .orWhereColumn({{Raw("filepath"), Raw("`note`")},
-                            {"size", Raw("progress"), ">"}});
+                            {SIZE, Raw("progress"), ">"}});
     QCOMPARE(builder->toSql(),
              "select * from `torrent_previewable_files` "
              "where `id` = ? or (filepath = `note` or `size` > progress)");
@@ -1926,9 +1953,10 @@ void tst_MySql_QueryBuilder::insert() const
 {
     auto log = DB::connection(m_connection).pretend([](auto &connection)
     {
-        connection.query()->from("torrents").insert({{NAME, "xyz"}, {"size", 6}});
+        connection.query()->from("torrents").insert({{NAME, "xyz"}, {SIZE, 6}});
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -1943,10 +1971,11 @@ void tst_MySql_QueryBuilder::insert_WithExpression() const
     auto log = DB::connection(m_connection).pretend([](auto &connection)
     {
         connection.query()->from("torrents")
-                .insert({{NAME, DB::raw("'xyz'")}, {"size", 6},
+                .insert({{NAME, DB::raw("'xyz'")}, {SIZE, 6},
                          {"progress", DB::raw(2)}});
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -1962,9 +1991,10 @@ void tst_MySql_QueryBuilder::update() const
     {
         connection.query()->from("torrents")
                 .whereEq(ID, 10)
-                .update({{NAME, "xyz"}, {"size", 6}});
+                .update({{NAME, "xyz"}, {SIZE, 6}});
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -1980,10 +2010,11 @@ void tst_MySql_QueryBuilder::update_WithExpression() const
     {
         connection.query()->from("torrents")
                 .whereEq(ID, 10)
-                .update({{NAME, DB::raw("'xyz'")}, {"size", 6},
+                .update({{NAME, DB::raw("'xyz'")}, {SIZE, 6},
                          {"progress", DB::raw(2)}});
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -2001,6 +2032,7 @@ void tst_MySql_QueryBuilder::remove() const
         connection.query()->from("torrents").remove(2222);
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);
@@ -2017,6 +2049,7 @@ void tst_MySql_QueryBuilder::remove_WithExpression() const
         connection.query()->from("torrents").remove(DB::raw(2223));
     });
 
+    QVERIFY(!log.isEmpty());
     const auto &firstLog = log.first();
 
     QCOMPARE(log.size(), 1);

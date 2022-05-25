@@ -27,11 +27,9 @@ win32-g++ {
 
 DEFINES += PROJECT_TINYORM_TEST
 
-# TinyORM library defines
-# ---
-
-# Enable code needed by tests, eg connection overriding in the Model
-DEFINES += TINYORM_TESTS_CODE
+# Disable debug output in release mode
+CONFIG(release, debug|release): \
+    DEFINES *= QT_NO_DEBUG_OUTPUT
 
 # Link against TinyORM library (also adds defines and include headers)
 # ---
@@ -47,7 +45,7 @@ mingw: tinyRcIncludepath += $$quote($$TINYORM_SOURCE_TREE/tests/resources/)
 load(tiny_resource_and_manifest)
 tiny_resource_and_manifest($$tinyRcIncludepath,     \
     $$quote($$TINYORM_SOURCE_TREE/tests/resources), \
-    true                                            \
+    TinyTest                                        \
 )
 
 unset(tinyRcIncludepath)
@@ -55,8 +53,7 @@ unset(tinyRcIncludepath)
 # Use TinyORM's library precompiled headers (PCH)
 # ---
 
-precompile_header: \
-    include($$TINYORM_SOURCE_TREE/include/pch.pri)
+include($$TINYORM_SOURCE_TREE/include/pch.pri)
 
 # Default rules for deployment
 # ---

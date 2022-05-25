@@ -1,13 +1,17 @@
 #pragma once
-#ifndef TORRENTPREVIEWABLEFILEEAGER_WITHDEFAULT_HPP
-#define TORRENTPREVIEWABLEFILEEAGER_WITHDEFAULT_HPP
+#ifndef MODELS_TORRENTPREVIEWABLEFILEEAGER_WITHDEFAULT_HPP
+#define MODELS_TORRENTPREVIEWABLEFILEEAGER_WITHDEFAULT_HPP
 
 #include "orm/tiny/model.hpp"
 
 #include "models/torrenteager_withdefault.hpp"
 #include "models/torrentpreviewablefilepropertyeager.hpp"
 
-using namespace Orm::Constants;
+namespace Models
+{
+
+using Orm::Constants::NAME;
+using Orm::Constants::SIZE;
 
 using Orm::Tiny::Model;
 using Orm::Tiny::Relations::BelongsTo;
@@ -26,7 +30,8 @@ public:
                               TorrentEager_WithDefault>>
     torrent()
     {
-        return belongsTo<TorrentEager_WithDefault>("", "", __func__);
+        return belongsTo<TorrentEager_WithDefault>(
+                    {}, {}, static_cast<const char *>(__func__));
     }
 
     /*! Get a torrent that owns the previewable file. */
@@ -35,7 +40,8 @@ public:
     torrent_WithBoolDefault()
     {
         // Ownership of a unique_ptr()
-        auto relation = belongsTo<TorrentEager_WithDefault>("", "", __func__);
+        auto relation = belongsTo<TorrentEager_WithDefault>(
+                            {}, {}, static_cast<const char *>(__func__));
 
         relation->withDefault();
 
@@ -48,9 +54,10 @@ public:
     torrent_WithVectorDefaults()
     {
         // Ownership of a unique_ptr()
-        auto relation = belongsTo<TorrentEager_WithDefault>("", "", __func__);
+        auto relation = belongsTo<TorrentEager_WithDefault>(
+                            {}, {}, static_cast<const char *>(__func__));
 
-        relation->withDefault({{NAME, "default_torrent_name"}, {"size", 123}});
+        relation->withDefault({{NAME, "default_torrent_name"}, {SIZE, 123}});
 
         return relation;
     }
@@ -84,7 +91,7 @@ public:
         auto relation =
                 hasOne<TorrentPreviewableFilePropertyEager>("previewable_file_id");
 
-        relation->withDefault({{NAME, "default_fileproperty_name"}, {"size", 321}});
+        relation->withDefault({{NAME, "default_fileproperty_name"}, {SIZE, 321}});
 
         return relation;
     }
@@ -114,13 +121,15 @@ private:
     };
 
     /*! The attributes that are mass assignable. */
-    inline static QStringList u_fillable {
+    inline static QStringList u_fillable { // NOLINT(cppcoreguidelines-interfaces-global-init)
         "file_index",
         "filepath",
-        "size",
+        SIZE,
         "progress",
         "note",
     };
 };
 
-#endif // TORRENTPREVIEWABLEFILEEAGER_WITHDEFAULT_HPP
+} // namespace Models
+
+#endif // MODELS_TORRENTPREVIEWABLEFILEEAGER_WITHDEFAULT_HPP

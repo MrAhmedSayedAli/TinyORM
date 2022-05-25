@@ -4,12 +4,10 @@
 
 #include "orm/constants.hpp"
 
-using namespace Orm::Constants;
+using Orm::Constants::COMMA;
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Exceptions
 {
 
@@ -22,15 +20,11 @@ SqlError::SqlError(const QString &message, const QSqlError &error)
     : SqlError(message.toUtf8().constData(), error)
 {}
 
-SqlError::SqlError(const QString &message, const QSqlError &error, const int)
+// NOLINTNEXTLINE(modernize-pass-by-value)
+SqlError::SqlError(const QString &message, const QSqlError &error, const int /*unused*/)
     : RuntimeError(message.toUtf8().constData())
     , m_sqlError(error)
 {}
-
-const QSqlError &SqlError::getSqlError() const
-{
-    return m_sqlError;
-}
 
 QString SqlError::formatMessage(const char *message, const QSqlError &error) const
 {
@@ -62,7 +56,6 @@ QString SqlError::formatMessage(const char *message, const QSqlError &error) con
     return result;
 }
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Exceptions
+
+TINYORM_END_COMMON_NAMESPACE

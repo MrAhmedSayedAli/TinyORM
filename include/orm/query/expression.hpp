@@ -1,6 +1,6 @@
 #pragma once
-#ifndef EXPRESSION_HPP
-#define EXPRESSION_HPP
+#ifndef ORM_QUERY_EXPRESSION_HPP
+#define ORM_QUERY_EXPRESSION_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -8,67 +8,80 @@ TINY_SYSTEM_HEADER
 #include <QVariant>
 #include <QVector>
 
-#include "orm/utils/export.hpp"
+#include "orm/macros/commonnamespace.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Query
 {
 
     /*! Expression in sql query. */
-    class SHAREDLIB_EXPORT Expression
+    class Expression
     {
     public:
         /*! Default constructor, needed by Q_DECLARE_METATYPE. */
-        Expression();
-        /*! Destructor. */
-        ~Expression() = default;
+        inline Expression() = default;
+        /*! Default destructor. */
+        inline ~Expression() = default;
 
         /*! Converting constructor from QVariant type. */
-        explicit Expression(const QVariant &value);
+        inline explicit Expression(const QVariant &value);
         /*! Converting constructor from QVariant type. */
-        explicit Expression(QVariant &&value);
+        inline explicit Expression(QVariant &&value);
 
         /*! Copy constructor. */
-        Expression(const Expression &) = default;
+        inline Expression(const Expression &) = default;
         /*! Copy assignment operator. */
-        Expression &operator=(const Expression &) = default;
+        inline Expression &operator=(const Expression &) = default;
 
         /*! Move constructor. */
-        Expression(Expression &&) = default;
+        inline Expression(Expression &&) = default;
         /*! Move assignment operator. */
-        Expression &operator=(Expression &&) = default;
+        inline Expression &operator=(Expression &&) = default;
 
         /*! Converting operator, QVariant(Expression). */
-        operator QVariant() const;
+        inline operator QVariant() const; // NOLINT(google-explicit-constructor)
 
         /*! Obtain expression's value. */
-        const QVariant &getValue() const;
+        inline const QVariant &getValue() const;
 
         /*! Equality operator, the inequality operator is automatically generated. */
-        bool operator==(const Expression &) const = default;
+        inline bool operator==(const Expression &) const = default;
 
     private:
         /*! Expression's value. */
-        QVariant m_value;
+        QVariant m_value {};
     };
 
-    inline const QVariant &Expression::getValue() const
+    // NOLINTNEXTLINE(modernize-pass-by-value)
+    Expression::Expression(const QVariant &value)
+        : m_value(value)
+    {}
+
+    Expression::Expression(QVariant &&value)
+        : m_value(std::move(value))
+    {}
+
+    Expression::operator QVariant() const
+    {
+        return QVariant::fromValue(*this);
+    }
+
+    const QVariant &Expression::getValue() const
     {
         return m_value;
     }
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Query
+
+TINYORM_END_COMMON_NAMESPACE
 
 #ifdef TINYORM_COMMON_NAMESPACE
+// NOLINTNEXTLINE(performance-no-int-to-ptr, misc-no-recursion)
 Q_DECLARE_METATYPE(TINYORM_COMMON_NAMESPACE::Orm::Query::Expression)
 #else
+// NOLINTNEXTLINE(performance-no-int-to-ptr, misc-no-recursion)
 Q_DECLARE_METATYPE(Orm::Query::Expression)
 #endif
 
-#endif // EXPRESSION_HPP
+#endif // ORM_QUERY_EXPRESSION_HPP

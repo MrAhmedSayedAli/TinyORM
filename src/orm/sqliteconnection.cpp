@@ -5,10 +5,8 @@
 #include "orm/schema/grammars/sqliteschemagrammar.hpp"
 #include "orm/schema/sqliteschemabuilder.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm
 {
 
@@ -32,7 +30,7 @@ std::unique_ptr<SchemaBuilder> SQLiteConnection::getSchemaBuilder()
     if (!m_schemaGrammar)
         useDefaultSchemaGrammar();
 
-    return std::make_unique<Schema::SQLiteSchemaBuilder>(*this);
+    return std::make_unique<SchemaNs::SQLiteSchemaBuilder>(*this);
 }
 
 std::unique_ptr<QueryGrammar> SQLiteConnection::getDefaultQueryGrammar() const
@@ -48,7 +46,7 @@ std::unique_ptr<QueryGrammar> SQLiteConnection::getDefaultQueryGrammar() const
 std::unique_ptr<SchemaGrammar> SQLiteConnection::getDefaultSchemaGrammar() const
 {
     // Ownership of a unique_ptr()
-    auto grammar = std::make_unique<Schema::Grammars::SQLiteSchemaGrammar>();
+    auto grammar = std::make_unique<SchemaNs::Grammars::SQLiteSchemaGrammar>();
 
     withTablePrefix(*grammar);
 
@@ -61,6 +59,5 @@ std::unique_ptr<QueryProcessor> SQLiteConnection::getDefaultPostProcessor() cons
 }
 
 } // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

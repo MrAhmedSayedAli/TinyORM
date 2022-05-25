@@ -1,6 +1,6 @@
 #pragma once
-#ifndef QUERIESRELATIONSHIPS_HPP
-#define QUERIESRELATIONSHIPS_HPP
+#ifndef ORM_TINY_CONCERNS_QUERIESRELATIONSHIPS_HPP
+#define ORM_TINY_CONCERNS_QUERIESRELATIONSHIPS_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -13,14 +13,12 @@ TINY_SYSTEM_HEADER
 #include "orm/tiny/tinytypes.hpp"
 #include "orm/utils/type.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny::Concerns
 {
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     class HasRelationStore;
 
     template<typename Model>
@@ -37,11 +35,6 @@ namespace Private
         template<typename T>
         friend class Tiny::Concerns::QueriesRelationships;
 
-        /*! Deleted constructor, this is a pure library class. */
-        HasNestedStore() = delete;
-        /*! Deleted destructor. */
-        ~HasNestedStore() = delete;
-
         /*! Arguments needed to save for the last relation in a hasNested(). */
         template<typename Related>
         struct NestedStore
@@ -57,26 +50,30 @@ namespace Private
         // BUG clang and thread_local, gcc on MinGW doesn't work too silverqx
         /*! Data member for nested stores. */
         template<typename Related>
-#if !defined(__clang__) && !defined(__MINGW32__)
-        thread_local
-#endif
+        T_THREAD_LOCAL
         inline static
-        std::stack<std::shared_ptr<NestedStore<Related>>> STORE = {};
+        std::stack<std::shared_ptr<NestedStore<Related>>> STORE;
 
         /*! Stored Related type is used to avoid a cryptic message when a bad type-id
             was passed to the has() nested method. */
-#if !defined(__clang__) && !defined(__MINGW32__)
-        thread_local
-#endif
+        T_THREAD_LOCAL
         inline static
-        std::stack<std::type_index> STORE_TYPEID = {};
+        std::stack<std::type_index> STORE_TYPEID;
+
+    public:
+        /*! Deleted default constructor, this is a pure library class. */
+        HasNestedStore() = delete;
+        /*! Deleted destructor. */
+        ~HasNestedStore() = delete;
     };
-}
+} // namespace Private
 
     /*! Queries Relationship Existence/Absence with nesting support. */
     template<typename Model>
     class QueriesRelationships
     {
+        Q_DISABLE_COPY(QueriesRelationships)
+
         // Used by HasRelationStore::QueriesRelationshipsStore::visited()
         friend typename Model::template ModelTypeApply<HasRelationStore>;
         // Used by QueriesRelationships::hasInternalVisited()
@@ -95,6 +92,11 @@ namespace Private
         using Relation = Orm::Tiny::Relations::Relation<Model, Related>;
 
     public:
+        /*! Default constructor. */
+        inline QueriesRelationships() = default;
+        /*! Default destructor. */
+        inline ~QueriesRelationships() = default;
+
         /*! Add a relationship count / exists condition to the query. */
         template<typename Related = void>
         TinyBuilder<Model> &
@@ -142,7 +144,7 @@ namespace Private
         requires std::is_member_function_pointer_v<Method>
 #endif
         TinyBuilder<Model> &
-        has(const Method relation, const QString &comparison = GE, qint64 count = 1,
+        has(Method relation, const QString &comparison = GE, qint64 count = 1,
             const QString &condition = AND,
             const std::function<void(TinyBuilder<Related> &)> &callback = nullptr);
 
@@ -187,7 +189,7 @@ namespace Private
         requires std::is_member_function_pointer_v<Method>
 #endif
         TinyBuilder<Model> &
-        whereHas(const Method relation,
+        whereHas(Method relation,
                  const std::function<void(TinyBuilder<Related> &)> &callback = nullptr,
                  const QString &comparison = GE, qint64 count = 1);
 
@@ -203,7 +205,7 @@ namespace Private
         /*! Get the "has relation" base query instance. */
         template<typename Related, typename Method>
         std::unique_ptr<Relation<Related>>
-        getRelationWithoutConstraints(const Method method);
+        getRelationWithoutConstraints(Method method);
 
         /*! Add the "has" condition where clause to the query. */
         template<typename Related>
@@ -597,13 +599,13 @@ namespace Private
         // Ownership of a unique_ptr()
         const auto hasQuery = getHasQueryByExistenceCheck(comparison, count, *relation);
 
-        if (relations.size() >= 1)
-            hasQuery->hasInternal(relations.takeFirst(), GE, 1, AND, relations);
-        else
+        if (relations.isEmpty())
             throw Orm::Exceptions::RuntimeError(
                     QStringLiteral(
                         "wtf, this should never happen :/, 'relations.size() == %1'.")
                     .arg(relations.size()));
+
+        hasQuery->hasInternal(relations.takeFirst(), GE, 1, AND, relations);
 
         addHasWhere(*hasQuery, *relation, comparison, count, condition);
     }
@@ -652,9 +654,9 @@ namespace Private
     template<typename Related>
     void QueriesRelationships<Model>::createHasNestedStore(
             const QString &comparison, const qint64 count,
-            const std::function<void (TinyBuilder<Related> &)> &callback) const
+            const std::function<void(TinyBuilder<Related> &)> &callback) const
     {
-        // BUG clang doesn't know how to init. aggregate ( by forward declaration inside, in construct in place ) silverqx
+        // BUG clang doesn't know how to init. aggregate ( by forward declaration inside, using construct in place ) silverqx
 #ifdef __clang__
         Private::HasNestedStore::STORE<Related>
                 .push(std::shared_ptr<Private::HasNestedStore::NestedStore<Related>>(
@@ -695,14 +697,13 @@ namespace Private
                     "nested relations. Actual '<Related> = %1', expected '<Related> "
                     "= %2', <Related> has to be of the same type as the 'last' "
                     "relation name passed to the has() related method.")
-                .arg(Utils::Type::classPureBasename(
+                .arg(Orm::Utils::Type::classPureBasename(
                          Private::HasNestedStore::STORE_TYPEID.top()),
-                     Utils::Type::classPureBasename<Related>()));
+                     Orm::Utils::Type::classPureBasename<Related>()));
     }
 
 } // namespace Orm::Tiny::Concerns
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // QUERIESRELATIONSHIPS_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_CONCERNS_QUERIESRELATIONSHIPS_HPP

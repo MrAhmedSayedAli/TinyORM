@@ -1,18 +1,17 @@
-#ifndef RELATIONPROXIES_HPP
-#define RELATIONPROXIES_HPP
+#pragma once
+#ifndef ORM_TINY_RELATIONS_RELATIONPROXIES_HPP
+#define ORM_TINY_RELATIONS_RELATIONPROXIES_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
-#include "orm/concepts.hpp"
+#include <QtSql/QSqlQuery>
+
+#include "orm/ormconcepts.hpp"
 #include "orm/tiny/tinytypes.hpp"
 
-class QSqlQuery;
+TINYORM_BEGIN_COMMON_NAMESPACE
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
 namespace Orm
 {
 
@@ -31,15 +30,20 @@ namespace Tiny::Relations
     template<class Model, class Related>
     class RelationProxies
     {
+        Q_DISABLE_COPY(RelationProxies)
+
         /*! JoinClause alias. */
         using JoinClause = Orm::Query::JoinClause;
         /*! Alias for the QueriesRelationships callback type. */
         template<typename HasRelated>
-        using CallbackType = Concerns::QueriesRelationshipsCallback<HasRelated>;
+        using CallbackType = Orm::Tiny::Concerns
+                                      ::QueriesRelationshipsCallback<HasRelated>;
 
     public:
-        /*! Virtual destructor. */
-        inline virtual ~RelationProxies() = default;
+        /*! Default constructor. */
+        inline RelationProxies() = default;
+        /*! Pure virtual destructor. */
+        inline virtual ~RelationProxies() = 0;
 
         /*! Get a single column's value from the first result of a query. */
         QVariant value(const Column &column) const;
@@ -137,6 +141,10 @@ namespace Tiny::Relations
         /*! Insert new records into the database. */
         std::optional<QSqlQuery>
         insert(const QVector<QVector<AttributeItem>> &values) const;
+        /*! Insert new records into the database (multi insert). */
+        std::optional<QSqlQuery>
+        insert(const QVector<QString> &columns, QVector<QVector<QVariant>> values) const;
+
         /*! Insert a new record and get the value of the primary key. */
         quint64 insertGetId(const QVector<AttributeItem> &attributes,
                             const QString &sequence = "") const;
@@ -147,6 +155,10 @@ namespace Tiny::Relations
         /*! Insert new records into the database while ignoring errors. */
         std::tuple<int, std::optional<QSqlQuery>>
         insertOrIgnore(const QVector<QVector<AttributeItem>> &values) const;
+        /*! Insert new records into the database while ignoring errors (multi insert). */
+        std::tuple<int, std::optional<QSqlQuery>>
+        insertOrIgnore(const QVector<QString> &columns,
+                       QVector<QVector<QVariant>> values) const;
 
         /*! Update records in the database. */
         std::tuple<int, QSqlQuery>
@@ -576,7 +588,7 @@ namespace Tiny::Relations
         requires std::is_member_function_pointer_v<Method>
 #endif
         const Relation<Model, Related> &
-        has(const Method relation, const QString &comparison = GE, qint64 count = 1,
+        has(Method relation, const QString &comparison = GE, qint64 count = 1,
             const QString &condition = AND,
             const std::function<void(
                 TinyBuilder<HasRelated> &)> &callback = nullptr) const;
@@ -623,7 +635,7 @@ namespace Tiny::Relations
         requires std::is_member_function_pointer_v<Method>
 #endif
         const Relation<Model, Related> &
-        whereHas(const Method relation,
+        whereHas(Method relation,
                  const std::function<void(
                      TinyBuilder<HasRelated> &)> &callback = nullptr,
                  const QString &comparison = GE, qint64 count = 1) const;
@@ -638,6 +650,9 @@ namespace Tiny::Relations
         /*! Get the base QueryBuilder driving the TinyBuilder. */
         QueryBuilder &getBaseQuery() const;
     };
+
+    template<class Model, class Related>
+    RelationProxies<Model, Related>::~RelationProxies() = default;
 
     template<class Model, class Related>
     QVariant
@@ -882,6 +897,14 @@ namespace Tiny::Relations
         return getQuery().insert(values);
     }
 
+    template<class Model, class Related>
+    std::optional<QSqlQuery>
+    RelationProxies<Model, Related>::insert(
+            const QVector<QString> &columns, QVector<QVector<QVariant>> values) const
+    {
+        return getQuery().insert(columns, std::move(values));
+    }
+
     // FEATURE dilemma primarykey, Model::KeyType vs QVariant silverqx
     template<class Model, class Related>
     quint64
@@ -905,6 +928,14 @@ namespace Tiny::Relations
             const QVector<QVector<AttributeItem>> &values) const
     {
         return getQuery().insertOrIgnore(values);
+    }
+
+    template<class Model, class Related>
+    std::tuple<int, std::optional<QSqlQuery>>
+    RelationProxies<Model, Related>::insertOrIgnore(
+            const QVector<QString> &columns, QVector<QVector<QVariant>> values) const
+    {
+        return getQuery().insertOrIgnore(columns, std::move(values));
     }
 
     template<class Model, class Related>
@@ -2110,10 +2141,9 @@ namespace Tiny::Relations
         return getQuery().getQuery();
     }
 
-} // namespace Orm::Tiny::Relations
-} // namespace Orm::Tiny
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Tiny::Relations
+} // namespace Orm
 
-#endif // RELATIONPROXIES_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_RELATIONS_RELATIONPROXIES_HPP

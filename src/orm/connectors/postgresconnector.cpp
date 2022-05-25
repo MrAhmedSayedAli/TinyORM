@@ -3,23 +3,26 @@
 #include <QRegularExpression>
 #include <QtSql/QSqlQuery>
 
+#include <unordered_set>
+
 #include "orm/constants.hpp"
 #include "orm/exceptions/queryerror.hpp"
 #include "orm/utils/type.hpp"
 
-using namespace Orm::Constants;
+using Orm::Constants::charset_;
+using Orm::Constants::NAME;
+using Orm::Constants::schema_;
+using Orm::Constants::timezone_;
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Connectors
 {
 
 ConnectionName
 PostgresConnector::connect(const QVariantHash &config) const
 {
-    const auto name = config[NAME].value<QString>();
+    auto name = config[NAME].value<QString>();
 
     /* We need to grab the QSqlDatabse options that should be used while making
        the brand new connection instance. The QSqlDatabase options control various
@@ -58,19 +61,19 @@ PostgresConnector::getConnectorOptions() const
     return m_options;
 }
 
-void PostgresConnector::parseConfigOptions(QVariantHash &) const
+void PostgresConnector::parseConfigOptions(QVariantHash &/*unused*/) const
 {}
 
 void PostgresConnector::configureEncoding(const QSqlDatabase &connection,
                                           const QVariantHash &config) const
 {
-    if (!config.contains("charset"))
+    if (!config.contains(charset_))
         return;
 
     QSqlQuery query(connection);
 
     if (query.exec(QStringLiteral("set names '%1'")
-                   .arg(config["charset"].value<QString>())))
+                   .arg(config[charset_].value<QString>())))
         return;
 
     throw Exceptions::QueryError(m_configureErrorMessage.arg(__tiny_func__), query);
@@ -79,16 +82,17 @@ void PostgresConnector::configureEncoding(const QSqlDatabase &connection,
 void PostgresConnector::configureTimezone(const QSqlDatabase &connection,
                                           const QVariantHash &config) const
 {
-    if (!config.contains("timezone"))
+    if (!config.contains(timezone_))
         return;
 
     QSqlQuery query(connection);
 
-    static const QStringList local {"local", "default"};
+    static const std::unordered_set<QString> local {QStringLiteral("local"),
+                                                    QStringLiteral("default")};
 
-    const auto timezone = config["timezone"].value<QString>();
+    const auto timezone = config[timezone_].value<QString>();
 
-    if (local.contains(timezone, Qt::CaseInsensitive)) {
+    if (local.contains(timezone.toLower())) {
         if (query.exec(QStringLiteral("set time zone %1").arg(timezone)))
             return;
     } else
@@ -101,12 +105,12 @@ void PostgresConnector::configureTimezone(const QSqlDatabase &connection,
 void PostgresConnector::configureSchema(const QSqlDatabase &connection,
                                         const QVariantHash &config) const
 {
-    if (!config.contains("schema"))
+    if (!config.contains(schema_))
         return;
 
     QSqlQuery query(connection);
 
-    const auto schema = formatSchema(config["schema"].value<QStringList>());
+    const auto schema = formatSchema(config[schema_].value<QStringList>());
 
     if (query.exec(QStringLiteral("set search_path to %1").arg(schema)))
         return;
@@ -118,9 +122,11 @@ QString PostgresConnector::formatSchema(QStringList schema) const
 {
     /* A schema configuration option can be passed as QString and also
        as QStringList at once. */
-    if (schema.size() == 1)
-        schema = schema.at(0).trimmed()
-                 .split(QRegularExpression("\\s*(?:,|;)\\s*"), Qt::SkipEmptyParts);
+    if (schema.size() == 1) {
+        static const QRegularExpression regex("\\s*(?:,|;)\\s*");
+
+        schema = schema.at(0).trimmed().split(regex, Qt::SkipEmptyParts);
+    }
 
     // Really nice 😎
     return QStringLiteral("\"%1\"").arg(schema.join(QLatin1String("\", \"")));
@@ -157,6 +163,5 @@ void PostgresConnector::configureSynchronousCommit(const QSqlDatabase &connectio
 }
 
 } // namespace Orm::Connectors
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

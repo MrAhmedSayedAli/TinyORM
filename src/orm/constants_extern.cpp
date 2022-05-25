@@ -1,9 +1,7 @@
 #include "orm/constants_extern.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Constants
 {
 
@@ -34,9 +32,64 @@ namespace Orm::Constants
     const QString DESC        = QStringLiteral("desc");
     const QString ID          = QStringLiteral("id");
     const QString NAME        = QStringLiteral("name");
+    const QString SIZE        = QStringLiteral("size");
+    const QString &SIZE_      = Orm::Constants::SIZE;
     const QString CREATED_AT  = QStringLiteral("created_at");
     const QString UPDATED_AT  = QStringLiteral("updated_at");
     const QString PARENTH_ONE = QStringLiteral("(%1)");
+    const QString NEWLINE     = QStringLiteral("\n");
+    const QString SPACE_IN    = QStringLiteral("%1 %2");
+    const QString NOSPACE     = QStringLiteral("%1%2");
+    const QString EMPTY       = QLatin1String("");
+    const QString text_       = QStringLiteral("text");
+
+    const QString QMYSQL      = QStringLiteral("QMYSQL");
+    const QString QPSQL       = QStringLiteral("QPSQL");
+    const QString QSQLITE     = QStringLiteral("QSQLITE");
+    const QString MYSQL_      = QStringLiteral("MySQL");
+    const QString POSTGRESQL  = QStringLiteral("PostgreSQL");
+    const QString SQLITE      = QStringLiteral("SQLite");
+
+    const QString driver_     = QStringLiteral("driver");
+    const QString host_       = QStringLiteral("host");
+    const QString port_       = QStringLiteral("port");
+    const QString database_   = QStringLiteral("database");
+    const QString schema_     = QStringLiteral("schema");
+    const QString username_   = QStringLiteral("username");
+    const QString password_   = QStringLiteral("password");
+    const QString charset_    = QStringLiteral("charset");
+    const QString collation_  = QStringLiteral("collation");
+    const QString timezone_   = QStringLiteral("timezone");
+    const QString prefix_     = QStringLiteral("prefix");
+    const QString options_    = QStringLiteral("options");
+    const QString strict_     = QStringLiteral("strict");
+    const QString engine_     = QStringLiteral("engine");
+    const QString dont_drop   = QStringLiteral("dont_drop");
+
+    const QString isolation_level         = QStringLiteral("isolation_level");
+    const QString foreign_key_constraints = QStringLiteral("foreign_key_constraints");
+    const QString check_database_exists   = QStringLiteral("check_database_exists");
+    const QString prefix_indexes          = QStringLiteral("prefix_indexes");
+
+    const QString H127001   = QStringLiteral("127.0.0.1");
+    const QString LOCALHOST = QStringLiteral("localhost");
+    const QString P3306     = QStringLiteral("3306");
+    const QString P5432     = QStringLiteral("5432");
+    const QString ROOT      = QStringLiteral("root");
+    const QString UTC       = QStringLiteral("UTC");
+    const QString LOCAL     = QStringLiteral("LOCAL");
+    const QString SYSTEM    = QStringLiteral("SYSTEM");
+    const QString TZ00      = QStringLiteral("+00:00");
+    const QString PUBLIC    = QStringLiteral("public");
+    const QString UTF8      = QStringLiteral("utf8");
+    const QString UTF8MB4   = QStringLiteral("utf8mb4");
+    const QString InnoDB    = QStringLiteral("InnoDB");
+    const QString MyISAM    = QStringLiteral("MyISAM");
+    const QString postgres_ = QStringLiteral("postgres");
+
+    const QString UTF8MB40900aici = QStringLiteral("utf8mb4_0900_ai_ci");
+    const QString UcsBasic        = QStringLiteral("ucs_basic");
+    const QString NotImplemented  = QStringLiteral("Not implemented :/.");
 
     // Comparison/logical/search operators
     const QString EQ       = QStringLiteral("=");
@@ -63,6 +116,5 @@ namespace Orm::Constants
     const QString B_AND    = QStringLiteral("&");
 
 } // namespace Orm::Constants
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

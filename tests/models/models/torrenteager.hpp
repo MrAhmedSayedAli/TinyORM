@@ -1,15 +1,19 @@
 #pragma once
-#ifndef TORRENTEAGER_HPP
-#define TORRENTEAGER_HPP
+#ifndef MODELS_TORRENTEAGER_HPP
+#define MODELS_TORRENTEAGER_HPP
 
 #include "orm/tiny/model.hpp"
 
 #include "models/torrentpeereager_norelations.hpp"
 #include "models/torrentpreviewablefileeager.hpp"
 
-using namespace Orm::Constants;
+namespace Models
+{
 
-using Orm::AttributeItem;
+using Orm::Constants::NAME;
+using Orm::Constants::SIZE;
+
+using Orm::Tiny::AttributeItem;
 using Orm::Tiny::Model;
 using Orm::Tiny::Relations::HasOne;
 using Orm::Tiny::Relations::HasMany;
@@ -53,16 +57,16 @@ private:
     };
 
     /*! The model's default values for attributes. */
-    inline static const QVector<AttributeItem> u_attributes {
-        {"size",     0},
+    inline static const QVector<AttributeItem> u_attributes { // NOLINT(cppcoreguidelines-interfaces-global-init)
+        {SIZE,       0},
         {"progress", 0},
         {"added_on", QDateTime::fromString("2021-04-01 15:10:10", Qt::ISODate)},
     };
 
     /*! The attributes that are mass assignable. */
-    inline static QStringList u_fillable {
+    inline static const QStringList u_fillable { // NOLINT(cppcoreguidelines-interfaces-global-init)
         NAME,
-        "size",
+        SIZE,
         "progress",
         "added_on",
         "hash",
@@ -70,7 +74,9 @@ private:
     };
 
     /*! The attributes that should be mutated to dates. @deprecated */
-    inline static QStringList u_dates {"added_on"};
+    inline static const QStringList u_dates {"added_on"};
 };
 
-#endif // TORRENTEAGER_HPP
+} // namespace Models
+
+#endif // MODELS_TORRENTEAGER_HPP

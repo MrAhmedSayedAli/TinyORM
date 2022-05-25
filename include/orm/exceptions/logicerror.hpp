@@ -1,6 +1,6 @@
 #pragma once
-#ifndef LOGICERROR_HPP
-#define LOGICERROR_HPP
+#ifndef ORM_EXCEPTIONS_LOGICERROR_HPP
+#define ORM_EXCEPTIONS_LOGICERROR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -9,40 +9,42 @@ TINY_SYSTEM_HEADER
 
 #include <stdexcept>
 
-#include "orm/utils/export.hpp"
+#include "orm/exceptions/ormerror.hpp"
+#include "orm/macros/export.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Exceptions
 {
 
-    /*! Logic exception. */
-    class SHAREDLIB_EXPORT LogicError : public std::logic_error
+    /*! TinyORM Logic exception. */
+    class SHAREDLIB_EXPORT LogicError :
+            public std::logic_error,
+            public OrmError
     {
     public:
         /*! const char * constructor. */
         explicit LogicError(const char *message);
         /*! QString constructor. */
         explicit LogicError(const QString &message);
+        /*! std::string constructor. */
+        explicit LogicError(const std::string &message);
 
         /*! Return exception message as a QString. */
-        const QString &message() const;
+        inline const QString &message() const noexcept;
 
     protected:
         /*! Exception message. */
-        const QString m_message = what();
+        QString m_message = what();
     };
 
-    inline const QString &LogicError::message() const
+    const QString &LogicError::message() const noexcept
     {
         return m_message;
     }
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Exceptions
 
-#endif // LOGICERROR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_EXCEPTIONS_LOGICERROR_HPP

@@ -7,10 +7,8 @@
 #include "orm/schema/grammars/postgresschemagrammar.hpp"
 #include "orm/schema/postgresschemabuilder.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm
 {
 
@@ -34,7 +32,7 @@ std::unique_ptr<SchemaBuilder> PostgresConnection::getSchemaBuilder()
     if (!m_schemaGrammar)
         useDefaultSchemaGrammar();
 
-    return std::make_unique<Schema::PostgresSchemaBuilder>(*this);
+    return std::make_unique<SchemaNs::PostgresSchemaBuilder>(*this);
 }
 
 std::unique_ptr<QueryGrammar> PostgresConnection::getDefaultQueryGrammar() const
@@ -50,7 +48,7 @@ std::unique_ptr<QueryGrammar> PostgresConnection::getDefaultQueryGrammar() const
 std::unique_ptr<SchemaGrammar> PostgresConnection::getDefaultSchemaGrammar() const
 {
     // Ownership of a unique_ptr()
-    auto grammar = std::make_unique<Schema::Grammars::PostgresSchemaGrammar>();
+    auto grammar = std::make_unique<SchemaNs::Grammars::PostgresSchemaGrammar>();
 
     withTablePrefix(*grammar);
 
@@ -63,6 +61,5 @@ std::unique_ptr<QueryProcessor> PostgresConnection::getDefaultPostProcessor() co
 }
 
 } // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

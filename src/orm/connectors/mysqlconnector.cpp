@@ -1,25 +1,29 @@
 #include "orm/connectors/mysqlconnector.hpp"
 
-#include <QtSql/QSqlQuery>
 #include <QVersionNumber>
+#include <QtSql/QSqlQuery>
 
 #include "orm/constants.hpp"
 #include "orm/exceptions/queryerror.hpp"
 #include "orm/utils/type.hpp"
 
-using namespace Orm::Constants;
+using Orm::Constants::charset_;
+using Orm::Constants::collation_;
+using Orm::Constants::COMMA;
+using Orm::Constants::isolation_level;
+using Orm::Constants::NAME;
+using Orm::Constants::strict_;
+using Orm::Constants::timezone_;
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Connectors
 {
 
 ConnectionName
 MySqlConnector::connect(const QVariantHash &config) const
 {
-    const auto name = config[NAME].value<QString>();
+    auto name = config[NAME].value<QString>();
 
     /* We need to grab the QSqlDatabse options that should be used while making
        the brand new connection instance. The QSqlDatabase options control various
@@ -57,37 +61,41 @@ MySqlConnector::getConnectorOptions() const
 
 void MySqlConnector::parseConfigOptions(QVariantHash &options) const
 {
-    // This connection options are banned
-    static const QVariantHash banned {
-        // We have our reconnector
-        {QStringLiteral("MYSQL_OPT_RECONNECT"), 1},
+    struct BannedValue
+    {
+        QVariant value;
+        QString message;
     };
 
-    auto itOption = banned.constBegin();
-    while (itOption != banned.constEnd()) {
-        const auto &key = itOption.key();
-        const auto &value = itOption.value();
+    // This connection options are banned
+    static const std::unordered_map<QString, BannedValue> bannedMap {
+        // We have our own reconnector
+        {QStringLiteral("MYSQL_OPT_RECONNECT"),
+            {1, QStringLiteral(" TinyORM uses its own reconnector.")}},
+    };
 
-        if (options.contains(key) && options[key] == value)
-            throw std::domain_error(
-                    "The connection option '" + value.value<QString>().toStdString() +
-                    "' is not allowed in the TinyORM, TinyORM uses its own "
-                    "reconnector.");
+    for (const auto &banned : bannedMap) {
+        const auto &key = banned.first;
+        const auto &value = banned.second;
 
-        ++itOption;
+        if (options.contains(key) && options[key] == value.value)
+            throw Exceptions::RuntimeError(
+                    QStringLiteral(
+                        "The '%1' connection option is not allowed in the TinyORM.%2")
+                    .arg(key, value.message));
     }
 }
 
 void MySqlConnector::configureIsolationLevel(const QSqlDatabase &connection,
                                              const QVariantHash &config) const
 {
-    if (!config.contains("isolation_level"))
+    if (!config.contains(isolation_level))
         return;
 
     QSqlQuery query(connection);
 
     if (query.exec(QStringLiteral("SET SESSION TRANSACTION ISOLATION LEVEL %1;")
-                   .arg(config["isolation_level"].value<QString>())))
+                   .arg(config[isolation_level].value<QString>())))
         return;
 
     throw Exceptions::QueryError(m_configureErrorMessage.arg(__tiny_func__), query);
@@ -96,13 +104,13 @@ void MySqlConnector::configureIsolationLevel(const QSqlDatabase &connection,
 void MySqlConnector::configureEncoding(const QSqlDatabase &connection,
                                        const QVariantHash &config) const
 {
-    if (!config.contains("charset"))
+    if (!config.contains(charset_))
         return;
 
     QSqlQuery query(connection);
 
     if (query.exec(QStringLiteral("set names '%1'%2;")
-                   .arg(config["charset"].value<QString>(), getCollation(config))))
+                   .arg(config[charset_].value<QString>(), getCollation(config))))
         return;
 
     throw Exceptions::QueryError(m_configureErrorMessage.arg(__tiny_func__), query);
@@ -110,21 +118,21 @@ void MySqlConnector::configureEncoding(const QSqlDatabase &connection,
 
 QString MySqlConnector::getCollation(const QVariantHash &config) const
 {
-    return config.contains("collation")
-            ? QStringLiteral(" collate '%1'").arg(config["collation"].value<QString>())
+    return config.contains(collation_)
+            ? QStringLiteral(" collate '%1'").arg(config[collation_].value<QString>())
             : "";
 }
 
 void MySqlConnector::configureTimezone(const QSqlDatabase &connection,
                                        const QVariantHash &config) const
 {
-    if (!config.contains("timezone"))
+    if (!config.contains(timezone_))
         return;
 
     QSqlQuery query(connection);
 
     if (query.exec(QStringLiteral("set time_zone=\"%1\";")
-                   .arg(config["timezone"].value<QString>())))
+                   .arg(config[timezone_].value<QString>())))
         return;
 
     throw Exceptions::QueryError(m_configureErrorMessage.arg(__tiny_func__), query);
@@ -133,30 +141,33 @@ void MySqlConnector::configureTimezone(const QSqlDatabase &connection,
 void MySqlConnector::setModes(const QSqlDatabase &connection,
                               const QVariantHash &config) const
 {
-    if (config.contains("modes"))
-
+    // Custom modes defined
+    if (config.contains("modes")) {
         setCustomModes(connection, config);
-
-    else if (config.contains("strict")) {
-
-        if (config["strict"].value<bool>()) {
-            QSqlQuery query(connection);
-            if (query.exec(strictMode(connection, config)))
-                return;
-
-            throw Exceptions::QueryError(m_configureErrorMessage.arg(__tiny_func__),
-                                         query);
-        }
-        else {
-            QSqlQuery query(connection);
-            if (query.exec(
-                    QStringLiteral("set session sql_mode='NO_ENGINE_SUBSTITUTION'")))
-                return;
-
-            throw Exceptions::QueryError(m_configureErrorMessage.arg(__tiny_func__),
-                                         query);
-        }
+        return;
     }
+
+    // No strict defined
+    if (!config.contains(strict_))
+        return;
+
+    QSqlQuery query(connection);
+
+    // Enable strict mode
+    if (config[strict_].value<bool>()) {
+        if (query.exec(strictMode(connection, config)))
+            return;
+
+        throw Exceptions::QueryError(m_configureErrorMessage.arg(__tiny_func__),
+                                     query);
+    }
+
+    // Set defaults, no strict mode
+    if (query.exec(QStringLiteral("set session sql_mode='NO_ENGINE_SUBSTITUTION'")))
+        return;
+
+    throw Exceptions::QueryError(m_configureErrorMessage.arg(__tiny_func__),
+                                 query);
 }
 
 QString MySqlConnector::strictMode(const QSqlDatabase &connection,
@@ -169,11 +180,11 @@ QString MySqlConnector::strictMode(const QSqlDatabase &connection,
         return QStringLiteral("set session sql_mode='ONLY_FULL_GROUP_BY,"
                               "STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,"
                               "ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'");
-    else
-        return QStringLiteral("set session sql_mode='ONLY_FULL_GROUP_BY,"
-                              "STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,"
-                              "ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,"
-                              "NO_ENGINE_SUBSTITUTION'");
+
+    return QStringLiteral("set session sql_mode='ONLY_FULL_GROUP_BY,"
+                          "STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,"
+                          "ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,"
+                          "NO_ENGINE_SUBSTITUTION'");
 }
 
 QString MySqlConnector::getMySqlVersion(const QSqlDatabase &connection,
@@ -219,6 +230,5 @@ void MySqlConnector::setCustomModes(const QSqlDatabase &connection,
 }
 
 } // namespace Orm::Connectors
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

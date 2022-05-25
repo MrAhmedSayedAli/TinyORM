@@ -1,11 +1,23 @@
 #include "orm/schema/grammars/sqliteschemagrammar.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
+#include "orm/exceptions/runtimeerror.hpp"
+
+TINYORM_BEGIN_COMMON_NAMESPACE
+
+namespace Orm::SchemaNs::Grammars
 {
-#endif
-namespace Orm::Schema::Grammars
+
+/* Compile methods for the SchemaBuilder */
+
+QString SQLiteSchemaGrammar::compileEnableForeignKeyConstraints() const
 {
+    throw Exceptions::RuntimeError(NotImplemented);
+}
+
+QString SQLiteSchemaGrammar::compileDisableForeignKeyConstraints() const
+{
+    throw Exceptions::RuntimeError(NotImplemented);
+}
 
 QString SQLiteSchemaGrammar::compileColumnListing(const QString &table) const
 {
@@ -14,10 +26,37 @@ QString SQLiteSchemaGrammar::compileColumnListing(const QString &table) const
     // TODO study, wtf is this 🤔 silverqx
     table_.replace(DOT, "__");
 
-    return QStringLiteral("pragma table_info(%1)").arg(wrap(table_));
+    return QStringLiteral("pragma table_info(%1)").arg(BaseGrammar::wrap(table_));
 }
 
-} // namespace Orm::Schema::Grammars
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+/* Compile methods for commands */
+
+QVector<QString>
+SQLiteSchemaGrammar::compileForeign(const Blueprint &/*unused*/,
+                                    const ForeignKeyCommand &/*unused*/) const
+{
+    throw Exceptions::RuntimeError(NotImplemented);
+}
+
+QVector<QString>
+SQLiteSchemaGrammar::invokeCompileMethod(const CommandDefinition &/*unused*/,
+                                         const DatabaseConnection &/*unused*/,
+                                         const Blueprint &/*unused*/) const
+{
+    throw Exceptions::RuntimeError(NotImplemented);
+}
+
+QString SQLiteSchemaGrammar::addModifiers(QString &&/*unused*/,
+                                          const ColumnDefinition &/*unused*/) const
+{
+    throw Exceptions::RuntimeError(NotImplemented);
+}
+
+QString SQLiteSchemaGrammar::getType(const ColumnDefinition &/*unused*/) const
+{
+    throw Exceptions::RuntimeError(NotImplemented);
+}
+
+} // namespace Orm::SchemaNs::Grammars
+
+TINYORM_END_COMMON_NAMESPACE

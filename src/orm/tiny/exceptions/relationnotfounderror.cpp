@@ -1,9 +1,7 @@
 #include "orm/tiny/exceptions/relationnotfounderror.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny::Exceptions
 {
 
@@ -30,10 +28,10 @@ QString RelationNotFoundError::formatMessage(const QString &model,
 
     switch (from) {
     case From::BELONGS_TO:
-        return belongsToMessage.arg(model, "belongsTo", relation);
+        return belongsToMessage.arg(model, QStringLiteral("belongsTo"), relation);
 
     case From::BELONGS_TO_MANY:
-        return belongsToMessage.arg(model, "belongsToMany", relation);
+        return belongsToMessage.arg(model, QStringLiteral("belongsToMany"), relation);
 
     default:
         return QStringLiteral(
@@ -43,7 +41,6 @@ QString RelationNotFoundError::formatMessage(const QString &model,
     }
 }
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Tiny::Exceptions
+
+TINYORM_END_COMMON_NAMESPACE

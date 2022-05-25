@@ -1,34 +1,28 @@
 #pragma once
-#ifndef GUARDSATTRIBUTES_HPP
-#define GUARDSATTRIBUTES_HPP
+#ifndef ORM_TINY_CONCERNS_GUARDSATTRIBUTES_HPP
+#define ORM_TINY_CONCERNS_GUARDSATTRIBUTES_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
-#include "orm/concepts.hpp"
-#include "orm/ormtypes.hpp"
+#include "orm/macros/threadlocal.hpp"
+#include "orm/tiny/concerns/guardedmodel.hpp"
+#include "orm/tiny/macros/crtpmodelwithbase.hpp"
+#include "orm/tiny/tinytypes.hpp"
 #include "orm/utils/type.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
 
-namespace Orm::Tiny
-{
-    template<typename Derived, AllRelationsConcept ...AllRelations>
-    class Model;
-
-namespace Concerns
+namespace Orm::Tiny::Concerns
 {
 
     /*! Guards attributes. */
-    template<typename Derived, typename ...AllRelations>
-    class GuardsAttributes
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    class GuardsAttributes : public Concerns::GuardedModel
     {
     public:
         /*! Get the fillable attributes for the model. */
-        const QStringList &getFillable() const;
+        inline const QStringList &getFillable() const;
         /*! Set the fillable attributes for the model. */
         Derived &fillable(const QStringList &fillable);
         /*! Set the fillable attributes for the model. */
@@ -41,7 +35,7 @@ namespace Concerns
         Derived &mergeFillable(QStringList &&fillable);
 
         /*! Get the guarded attributes for the model. */
-        const QStringList &getGuarded() const;
+        inline const QStringList &getGuarded() const;
         /*! Set the guarded attributes for the model. */
         Derived &guard(const QStringList &guarded);
         /*! Set the guarded attributes for the model. */
@@ -52,15 +46,6 @@ namespace Concerns
         /*! Merge new guarded attributes with existing guarded attributes
             on the model. */
         Derived &mergeGuarded(QStringList &&guarded);
-
-        /*! Disable all mass assignable restrictions. */
-        static void unguard(bool state = true);
-        /*! Enable the mass assignment restrictions. */
-        static void reguard();
-        /*! Determine if the current state is "unguarded". */
-        static bool isUnguarded();
-        /*! Run the given callable while being unguarded. */
-        static void unguarded(const std::function<void()> &callback);
 
         /*! Determine if the given attribute may be mass assigned. */
         bool isFillable(const QString &key) const;
@@ -83,23 +68,18 @@ namespace Concerns
         fillableFromArray(QVector<AttributeItem> &&attributes) const;
 
         /*! The attributes that are mass assignable. */
-        inline static QStringList u_fillable = {};
+        T_THREAD_LOCAL
+        inline static QStringList u_fillable;
         /*! The attributes that aren't mass assignable. */
-        inline static QStringList u_guarded {ASTERISK};
-        /*! Indicates if all mass assignment is enabled. */
-        inline static bool m_unguarded = false;
+        T_THREAD_LOCAL
+        inline static QStringList u_guarded {ASTERISK}; // NOLINT(cppcoreguidelines-interfaces-global-init)
         /*! The actual columns that exist on the database and can be guarded. */
-        inline static QHash<QString, QStringList> m_guardableColumns = {};
+        T_THREAD_LOCAL
+        inline static QHash<QString, QStringList> m_guardableColumns;
 
     private:
-        /*! Static cast this to a child's instance type (CRTP). */
-        Derived &model();
-        /*! Static cast this to a child's instance type (CRTP), const version. */
-        const Derived &model() const;
-        /*! Static cast this to a child's instance  Model type. */
-        Model<Derived, AllRelations...> &basemodel();
-        /*! Static cast this to a child's instance Model type, const version. */
-        const Model<Derived, AllRelations...> &basemodel() const;
+        /* Static cast this to a child's instance type (CRTP) */
+        TINY_CRTP_MODEL_WITH_BASE_DECLARATIONS
     };
 
     /* These methods may look a little strange because they are non-static, but it is
@@ -108,37 +88,39 @@ namespace Concerns
        from the Model::ctor all of the u_xx mass asignment related data members have
        to be static. ✌ */
 
-    template<typename Derived, typename ...AllRelations>
-    inline const QStringList &
+    /* public */
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    const QStringList &
     GuardsAttributes<Derived, AllRelations...>::getFillable() const
     {
-        return basemodel().getFillableInternal();
+        return basemodel().getUserFillable();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     Derived &
     GuardsAttributes<Derived, AllRelations...>::fillable(const QStringList &fillable)
     {
-        basemodel().getFillableInternal() = fillable;
+        basemodel().getUserFillable() = fillable;
 
         return model();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     Derived &
     GuardsAttributes<Derived, AllRelations...>::fillable(QStringList &&fillable)
     {
-        basemodel().getFillableInternal() = std::move(fillable);
+        basemodel().getUserFillable() = std::move(fillable);
 
         return model();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     Derived &
     GuardsAttributes<Derived, AllRelations...>::mergeFillable(
             const QStringList &fillable)
     {
-        auto &fillable_ = basemodel().getFillableInternal();
+        auto &fillable_ = basemodel().getUserFillable();
 
         for (const auto &value : fillable)
             if (!fillable_.contains(value))
@@ -147,11 +129,11 @@ namespace Concerns
         return model();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     Derived &
     GuardsAttributes<Derived, AllRelations...>::mergeFillable(QStringList &&fillable)
     {
-        auto &fillable_ = basemodel().getFillableInternal();
+        auto &fillable_ = basemodel().getUserFillable();
 
         for (auto &value : fillable)
             if (!fillable_.contains(value))
@@ -160,36 +142,36 @@ namespace Concerns
         return model();
     }
 
-    template<typename Derived, typename ...AllRelations>
-    inline const QStringList &
+    template<typename Derived, AllRelationsConcept ...AllRelations>
+    const QStringList &
     GuardsAttributes<Derived, AllRelations...>::getGuarded() const
     {
-        return basemodel().getGuardedInternal();
+        return basemodel().getUserGuarded();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     Derived &
     GuardsAttributes<Derived, AllRelations...>::guard(const QStringList &guarded)
     {
-        basemodel().getGuardedInternal() = guarded;
+        basemodel().getUserGuarded() = guarded;
 
         return model();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     Derived &
     GuardsAttributes<Derived, AllRelations...>::guard(QStringList &&guarded)
     {
-        basemodel().getGuardedInternal() = std::move(guarded);
+        basemodel().getUserGuarded() = std::move(guarded);
 
         return model();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     Derived &
     GuardsAttributes<Derived, AllRelations...>::mergeGuarded(const QStringList &guarded)
     {
-        auto &guarded_ = basemodel().getGuardedInternal();
+        auto &guarded_ = basemodel().getUserGuarded();
 
         for (const auto &value : guarded)
             if (!guarded_.contains(value))
@@ -198,11 +180,11 @@ namespace Concerns
         return model();
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     Derived &
     GuardsAttributes<Derived, AllRelations...>::mergeGuarded(QStringList &&guarded)
     {
-        auto &guarded_ = basemodel().getGuardedInternal();
+        auto &guarded_ = basemodel().getUserGuarded();
 
         for (auto &value : guarded)
             if (!guarded_.contains(value))
@@ -211,53 +193,14 @@ namespace Concerns
         return model();
     }
 
-    template<typename Derived, typename ...AllRelations>
-    void GuardsAttributes<Derived, AllRelations...>::unguard(const bool state)
-    {
-        // NOTE api different, Eloquent use late static binding for unguarded silverqx
-        m_unguarded = state;
-    }
-
-    template<typename Derived, typename ...AllRelations>
-    void GuardsAttributes<Derived, AllRelations...>::reguard()
-    {
-        m_unguarded = false;
-    }
-
-    template<typename Derived, typename ...AllRelations>
-    inline bool GuardsAttributes<Derived, AllRelations...>::isUnguarded()
-    {
-        return m_unguarded;
-    }
-
-    // NOTE api different, Eloquent returns whatever callback returns silverqx
-    template<typename Derived, typename ...AllRelations>
-    void GuardsAttributes<Derived, AllRelations...>::unguarded(
-            const std::function<void()> &callback)
-    {
-        if (m_unguarded) {
-            std::invoke(callback);
-            return;
-        }
-
-        unguard();
-
-        try {
-            std::invoke(callback);
-        } catch (...) {
-        }
-
-        reguard();
-    }
-
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     bool
     GuardsAttributes<Derived, AllRelations...>::isFillable(const QString &key) const
     {
-        if (m_unguarded)
+        if (isUnguarded())
             return true;
 
-        const auto &fillable = basemodel().getFillableInternal();
+        const auto &fillable = basemodel().getUserFillable();
 
         /* If the key is in the "fillable" vector, we can of course assume that it's
            a fillable attribute. Otherwise, we will check the guarded vector when
@@ -278,11 +221,11 @@ namespace Concerns
 //                && !key.startsWith(UNDERSCORE);
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     bool
     GuardsAttributes<Derived, AllRelations...>::isGuarded(const QString &key) const
     {
-        const auto &guarded = basemodel().getGuardedInternal();
+        const auto &guarded = basemodel().getUserGuarded();
 
         if (guarded.isEmpty())
             return false;
@@ -295,14 +238,16 @@ namespace Concerns
                 || !isGuardableColumn(key);
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     bool GuardsAttributes<Derived, AllRelations...>::totallyGuarded() const
     {
-        return basemodel().getFillableInternal().isEmpty()
-                && basemodel().getGuardedInternal() == QStringList {ASTERISK};
+        return basemodel().getUserFillable().isEmpty()
+                && basemodel().getUserGuarded() == QStringList {ASTERISK};
     }
 
-    template<typename Derived, typename ...AllRelations>
+    /* protected */
+
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     bool
     GuardsAttributes<Derived, AllRelations...>::isGuardableColumn(
             const QString &key) const
@@ -319,22 +264,23 @@ namespace Concerns
         return m_guardableColumns[guardableKey].contains(key);
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     QString
     GuardsAttributes<Derived, AllRelations...>::getKeyForGuardableHash() const
     {
-        return QStringLiteral("%1-%2").arg(model().getConnectionName(),
-                                           Utils::Type::classPureBasename<Derived>());
+        return QStringLiteral("%1-%2").arg(
+                    model().getConnectionName(),
+                    Orm::Utils::Type::classPureBasename<Derived>());
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     QVector<AttributeItem>
     GuardsAttributes<Derived, AllRelations...>::fillableFromArray(
             const QVector<AttributeItem> &attributes) const
     {
-        const auto &fillable = basemodel().getFillableInternal();
+        const auto &fillable = basemodel().getUserFillable();
 
-        if (fillable.isEmpty() || m_unguarded)
+        if (fillable.isEmpty() || isUnguarded())
             return attributes;
 
         QVector<AttributeItem> result;
@@ -346,14 +292,14 @@ namespace Concerns
         return result;
     }
 
-    template<typename Derived, typename ...AllRelations>
+    template<typename Derived, AllRelationsConcept ...AllRelations>
     QVector<AttributeItem>
     GuardsAttributes<Derived, AllRelations...>::fillableFromArray(
             QVector<AttributeItem> &&attributes) const
     {
-        const auto &fillable = basemodel().getFillableInternal();
+        const auto &fillable = basemodel().getUserFillable();
 
-        if (fillable.isEmpty() || m_unguarded)
+        if (fillable.isEmpty() || isUnguarded())
             return std::move(attributes);
 
         QVector<AttributeItem> result;
@@ -365,41 +311,11 @@ namespace Concerns
         return result;
     }
 
-    template<typename Derived, typename ...AllRelations>
-    inline Derived &
-    GuardsAttributes<Derived, AllRelations...>::model()
-    {
-        // Can not be cached with static because a copy can be made
-        // TODO cache it as class data member std::optional<std::reference_wrapper<Derived>> m_model = std::nullopt, but I will have to create copy ctor to set m_model {std::nullopt}, the same for other similar model() methods like Model::model(), then I can to check if (m_model) and return right away and I will call static_cast or dynamic_cast only once for every instance, it is casted everytime now 😟 silverqx
-        return static_cast<Derived &>(*this);
-    }
-
-    template<typename Derived, typename ...AllRelations>
-    inline const Derived &
-    GuardsAttributes<Derived, AllRelations...>::model() const
-    {
-        return static_cast<const Derived &>(*this);
-    }
-
-    template<typename Derived, typename ...AllRelations>
-    inline Model<Derived, AllRelations...> &
-    GuardsAttributes<Derived, AllRelations...>::basemodel()
-    {
-        // Can not be cached with static because a copy can be made
-        return static_cast<Model<Derived, AllRelations...> &>(*this);
-    }
-
-    template<typename Derived, typename ...AllRelations>
-    inline const Model<Derived, AllRelations...> &
-    GuardsAttributes<Derived, AllRelations...>::basemodel() const
-    {
-        return static_cast<const Model<Derived, AllRelations...> &>(*this);
-    }
+    /* Static cast this to a child's instance type (CRTP) */
+    TINY_CRTP_MODEL_WITH_BASE_DEFINITIONS(GuardsAttributes)
 
 } // namespace Orm::Tiny::Concerns
-} // namespace Orm::Tiny
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // GUARDSATTRIBUTES_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_CONCERNS_GUARDSATTRIBUTES_HPP

@@ -1,17 +1,15 @@
 #pragma once
-#ifndef HASONEORMANY_HPP
-#define HASONEORMANY_HPP
+#ifndef ORM_TINY_RELATIONS_HASONEORMANY_HPP
+#define ORM_TINY_RELATIONS_HASONEORMANY_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include "orm/tiny/relations/relation.hpp"
-#include "orm/utils/attribute.hpp"
+#include "orm/tiny/utils/attribute.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny::Relations
 {
 
@@ -19,12 +17,20 @@ namespace Orm::Tiny::Relations
     template<class Model, class Related>
     class HasOneOrMany : public Relation<Model, Related>
     {
+        Q_DISABLE_COPY(HasOneOrMany)
+
+        /*! Alias for the attribute utils. */
+        using AttributeUtils = Orm::Tiny::Utils::Attribute;
+
     protected:
         /*! Protected constructor. */
         HasOneOrMany(std::unique_ptr<Related> &&related, Model &parent,
                      const QString &foreignKey, const QString &localKey);
 
     public:
+        /*! Pure virtual destructor. */
+        inline ~HasOneOrMany() override = 0;
+
         /*! Set the base constraints on the relation query. */
         void addConstraints() const override;
 
@@ -33,11 +39,11 @@ namespace Orm::Tiny::Relations
 
         /* Getters / Setters */
         /*! Get the key value of the parent's local key. */
-        QVariant getParentKey() const;
+        inline QVariant getParentKey() const;
         /*! Get the fully qualified parent key name. */
-        QString getQualifiedParentKeyName() const override;
+        inline QString getQualifiedParentKeyName() const override;
         /*! Get the key for comparing against the parent key in "has" query. */
-        QString getExistenceCompareKey() const override;
+        inline QString getExistenceCompareKey() const override;
 
         /* TinyBuilder proxy methods */
         /*! Find a model by its primary key or return a new instance of the related
@@ -93,7 +99,7 @@ namespace Orm::Tiny::Relations
         /*! Get the plain foreign key. */
         QString getForeignKeyName() const;
         /*! Get the foreign key for the relationship. */
-        const QString &getQualifiedForeignKeyName() const;
+        inline const QString &getQualifiedForeignKeyName() const;
 
         /* Inserting operations on the relationship */
         /*! Set the foreign ID for creating a related model. */
@@ -114,12 +120,17 @@ namespace Orm::Tiny::Relations
         /*! The local key of the parent model. */
         QString m_localKey;
         /*! The count of self joins. */
+        T_THREAD_LOCAL
         inline static int selfJoinCount = 0;
     };
 
     template<class Model, class Related>
+    HasOneOrMany<Model, Related>::~HasOneOrMany() = default;
+
+    template<class Model, class Related>
     HasOneOrMany<Model, Related>::HasOneOrMany(
             std::unique_ptr<Related> &&related, Model &parent,
+            // NOLINTNEXTLINE(modernize-pass-by-value)
             const QString &foreignKey, const QString &localKey
     )
         : Relation<Model, Related>(std::move(related), parent)
@@ -147,19 +158,19 @@ namespace Orm::Tiny::Relations
     }
 
     template<class Model, class Related>
-    inline QVariant HasOneOrMany<Model, Related>::getParentKey() const
+    QVariant HasOneOrMany<Model, Related>::getParentKey() const
     {
         return this->m_parent.getAttribute(m_localKey);
     }
 
     template<class Model, class Related>
-    inline QString HasOneOrMany<Model, Related>::getQualifiedParentKeyName() const
+    QString HasOneOrMany<Model, Related>::getQualifiedParentKeyName() const
     {
         return this->m_parent.qualifyColumn(m_localKey);
     }
 
     template<class Model, class Related>
-    inline QString HasOneOrMany<Model, Related>::getExistenceCompareKey() const
+    QString HasOneOrMany<Model, Related>::getExistenceCompareKey() const
     {
         return getQualifiedForeignKeyName();
     }
@@ -190,8 +201,8 @@ namespace Orm::Tiny::Relations
 
         auto newInstance =
                 this->m_related->newInstance(
-                    Utils::Attribute::joinAttributesForFirstOr(attributes, values,
-                                                               this->m_relatedKey));
+                    AttributeUtils::joinAttributesForFirstOr(
+                        attributes, values, this->m_relatedKey));
 
         setForeignAttributesForCreate(newInstance);
 
@@ -209,8 +220,8 @@ namespace Orm::Tiny::Relations
         if (instance)
             return *instance;
 
-        return create(Utils::Attribute::joinAttributesForFirstOr(attributes, values,
-                                                                 this->m_relatedKey));
+        return create(AttributeUtils::joinAttributesForFirstOr(
+                          attributes, values, this->m_relatedKey));
     }
 
     template<class Model, class Related>
@@ -298,7 +309,7 @@ namespace Orm::Tiny::Relations
     {
         QVector<Related> instances;
 
-        for (auto &record : records)
+        for (const auto &record : records)
             instances << create(record);
 
         return instances;
@@ -369,7 +380,7 @@ namespace Orm::Tiny::Relations
     }
 
     template<class Model, class Related>
-    inline const QString &
+    const QString &
     HasOneOrMany<Model, Related>::getQualifiedForeignKeyName() const
     {
         /* Foreign key is already qualified, it is done in Model::hasMany/hasOne() and
@@ -401,8 +412,7 @@ namespace Orm::Tiny::Relations
     }
 
 } // namespace Orm::Tiny::Relations
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // HASONEORMANY_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_RELATIONS_HASONEORMANY_HPP

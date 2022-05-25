@@ -3,26 +3,23 @@
 #include "orm/databaseconnection.hpp"
 #include "orm/exceptions/invalidargumenterror.hpp"
 #include "orm/query/joinclause.hpp"
+#include "orm/utils/query.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+using QueryUtils = Orm::Utils::Query;
+
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Query
 {
 
-Builder::Builder(ConnectionInterface &connection, const QueryGrammar &grammar)
+/* public */
+
+Builder::Builder(DatabaseConnection &connection, const QueryGrammar &grammar)
     : m_connection(connection)
     , m_grammar(grammar)
-    , m_columns()
-    , m_from()
-    , m_joins()
-    , m_wheres()
-    , m_groups()
-    , m_havings()
-    , m_orders()
-    , m_lock()
 {}
+
+/* Retrieving results */
 
 QSqlQuery
 Builder::get(const QVector<Column> &columns)
@@ -102,12 +99,6 @@ QString Builder::toSql()
     return m_grammar.compileSelect(*this);
 }
 
-std::optional<QSqlQuery>
-Builder::insert(const QVariantMap &values)
-{
-    return insert(QVector<QVariantMap> {values});
-}
-
 namespace
 {
     const auto flatValuesForInsert = [](const auto &values)
@@ -119,7 +110,9 @@ namespace
 
         return flattenValues;
     };
-}
+} // namespace
+
+/* Insert, Update, Delete */
 
 // TEST for insert silverqx
 std::optional<QSqlQuery>
@@ -136,6 +129,18 @@ Builder::insert(const QVector<QVariantMap> &values)
 
     return m_connection.insert(m_grammar.compileInsert(*this, values),
                                cleanBindings(flatValuesForInsert(values)));
+}
+
+std::optional<QSqlQuery>
+Builder::insert(const QVariantMap &values)
+{
+    return insert(QVector<QVariantMap> {values});
+}
+
+std::optional<QSqlQuery>
+Builder::insert(const QVector<QString> &columns, QVector<QVector<QVariant>> values)
+{
+    return insert(QueryUtils::zipForInsert(columns, std::move(values)));
 }
 
 // FEATURE dilemma primarykey, add support for Model::KeyType in QueryBuilder/TinyBuilder or should it be QVariant and runtime type check? 🤔 silverqx
@@ -168,6 +173,13 @@ Builder::insertOrIgnore(const QVariantMap &values)
     return insertOrIgnore(QVector<QVariantMap> {values});
 }
 
+std::tuple<int, std::optional<QSqlQuery>>
+Builder::insertOrIgnore(const QVector<QString> &columns,
+                        QVector<QVector<QVariant>> values)
+{
+    return insertOrIgnore(QueryUtils::zipForInsert(columns, std::move(values)));
+}
+
 std::tuple<int, QSqlQuery>
 Builder::update(const QVector<UpdateItem> &values)
 {
@@ -194,13 +206,16 @@ void Builder::truncate()
     for (const auto &[sql, bindings] : m_grammar.compileTruncate(*this))
         /* Postgres doesn't execute truncate statement as prepared query:
            https://www.postgresql.org/docs/13/sql-prepare.html */
-        if (m_connection.driverName() == "QPSQL")
+        if (m_connection.driverName() == QPSQL)
             m_connection.unprepared(sql);
         else
             m_connection.statement(sql, bindings);
 }
 
-QVariant Builder::aggregate(const QString &function, const QVector<Column> &columns)
+/* Select */
+
+QVariant Builder::aggregate(const QString &function,
+                            const QVector<Column> &columns) const
 {
     auto resultsQuery = cloneWithout({PropertyType::COLUMNS})
                         .cloneWithoutBindings({BindingType::SELECT})
@@ -503,7 +518,7 @@ Builder &Builder::having(const Column &column, const QString &comparison,
     m_havings.append({column, value, comparison, condition, HavingType::BASIC});
 
     if (!value.canConvert<Expression>())
-        // CUR1 check flattenBindings, I already have flatBindingsForUpdateDelete() algo silverqx
+        // CUR1 check flattenBindings, I already have flatBindingsForUpdateDelete() algorithm silverqx
         addBinding(value, BindingType::HAVING);
 
     return *this;
@@ -525,6 +540,7 @@ Builder &Builder::havingRaw(const QString &sql, const QVector<QVariant> &binding
     return *this;
 }
 
+// TODO stackoverflow, I think all of these kind of methods should be inline silverqx
 Builder &Builder::orHavingRaw(const QString &sql, const QVector<QVariant> &bindings)
 {
     return havingRaw(sql, bindings, OR);
@@ -535,8 +551,8 @@ Builder &Builder::orderBy(const Column &column, const QString &direction)
     const auto &directionLower = direction.toLower();
 
     if (directionLower != ASC && directionLower != DESC)
-        throw Exceptions::RuntimeError(
-                "Order direction must be \"asc\" or \"desc\", case is not important.");
+        throw Exceptions::InvalidArgumentError(
+                R"(Order direction must be "asc" or "desc", case is not important.)");
 
     m_orders.append({column, directionLower});
 
@@ -624,6 +640,8 @@ Builder &Builder::forPage(const int page, const int perPage)
     return offset((page - 1) * perPage).limit(perPage);
 }
 
+/* Pessimistic Locking */
+
 Builder &Builder::lockForUpdate()
 {
     return lock(true);
@@ -668,6 +686,8 @@ Builder &Builder::lock(QString &&value)
 
     return *this;
 }
+
+/* Getters / Setters */
 
 QVector<QVariant> Builder::getBindings() const
 {
@@ -728,6 +748,8 @@ Builder &Builder::setBindings(QVector<QVariant> &&bindings, const BindingType ty
     return *this;
 }
 
+/* Other methods */
+
 // TODO next revisit QSharedPointer, after few weeks I'm pretty sure that this can/should be std::unique_pre, like in the TinyBuilder, I need to check if more instances need to save this pointer at once, if don't then I have to change it silverqx
 QSharedPointer<Builder> Builder::newQuery() const
 {
@@ -737,7 +759,7 @@ QSharedPointer<Builder> Builder::newQuery() const
 QSharedPointer<Builder> Builder::forNestedWhere() const
 {
     // Ownership of the QSharedPointer
-    const auto query = newQuery();
+    auto query = newQuery();
 
     query->setFrom(m_from);
 
@@ -753,7 +775,7 @@ Expression Builder::raw(const QVariant &value) const
 Builder &Builder::addNestedWhereQuery(const QSharedPointer<Builder> &query,
                                       const QString &condition)
 {
-    if (!(query->m_wheres.size() > 0))
+    if (query->m_wheres.isEmpty())
         return *this;
 
     m_wheres.append({.column = {}, .condition = condition, .type = WhereType::NESTED,
@@ -836,11 +858,13 @@ Builder Builder::cloneWithoutBindings(
     return copy;
 }
 
+/* protected */
+
 bool Builder::invalidOperator(const QString &comparison) const
 {
     const auto comparison_ = comparison.toLower();
 
-    return !m_operators.contains(comparison_) &&
+    return !getOperators().contains(comparison_) &&
             !m_grammar.getOperators().contains(comparison_);
 }
 
@@ -921,7 +945,7 @@ Builder::onceWithColumns(
     if (original.isEmpty())
         m_columns = columns;
 
-    const auto result = std::invoke(callback);
+    auto result = std::invoke(callback);
 
     // After running the callback, the columns are reset to the original value
     m_columns = original;
@@ -986,6 +1010,8 @@ QString Builder::stripTableForPluck(const QString &column) const
     return column.split(as).last().trimmed();
 }
 
+/* Getters / Setters */
+
 Builder &Builder::setAggregate(const QString &function, const QVector<Column> &columns)
 {
 // TODO clang13 doesn't support in_place construction of aggregates in std::optional.emplace() 😲, gcc and msvc are ok silverqx
@@ -1003,6 +1029,8 @@ Builder &Builder::setAggregate(const QString &function, const QVector<Column> &c
 
     return *this;
 }
+
+/* private */
 
 QSqlQuery Builder::runSelect()
 {
@@ -1099,7 +1127,20 @@ void Builder::checkBindingType(const BindingType type) const
                 .arg(static_cast<int>(type)));
 }
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+const QVector<QString> &Builder::getOperators()
+{
+    static const QVector<QString> cachedOperators {
+        EQ, LT, GT, LE, GE, NE_, NE, "<=>",
+        LIKE, "like binary", NLIKE, ILIKE,
+        B_AND, B_OR, "^", "<<", ">>", "&~",
+        "rlike", "not rlike", "regexp", "not regexp",
+        "~", "~*", "!~", "!~*", "similar to",
+        "not similar to", "not ilike", "~~*", "!~~*",
+    };
+
+    return cachedOperators;
+}
+
+} // namespace Orm::Query
+
+TINYORM_END_COMMON_NAMESPACE

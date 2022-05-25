@@ -1,32 +1,26 @@
 #pragma once
-#ifndef DOMAINERROR_HPP
-#define DOMAINERROR_HPP
+#ifndef ORM_EXCEPTIONS_DOMAINERROR_HPP
+#define ORM_EXCEPTIONS_DOMAINERROR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
-#include <stdexcept>
-
 #include "orm/exceptions/logicerror.hpp"
-#include "orm/utils/export.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Exceptions
 {
 
-    /*! Domain exception. */
-    class SHAREDLIB_EXPORT DomainError : public LogicError
+    /*! TinyORM Domain exception. */
+    class DomainError : public LogicError
     {
         /*! Inherit constructors. */
         using LogicError::LogicError;
     };
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Exceptions
 
-#endif // DOMAINERROR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_EXCEPTIONS_DOMAINERROR_HPP

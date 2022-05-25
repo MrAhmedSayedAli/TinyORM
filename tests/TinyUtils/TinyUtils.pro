@@ -23,6 +23,10 @@ CONFIG(shared, dll|shared|static|staticlib) | \
 CONFIG(dll, dll|shared|static|staticlib): \
     DEFINES += TINYUTILS_BUILDING_SHARED
 
+# Disable debug output in release mode
+CONFIG(release, debug|release): \
+    DEFINES *= QT_NO_DEBUG_OUTPUT
+
 # TinyUtils library header and source files
 # ---
 
@@ -53,8 +57,7 @@ unset(tinyRcIncludepath)
 # Use Precompiled headers (PCH)
 # ---
 
-precompile_header: \
-    include($$PWD/src/pch.pri)
+include($$PWD/src/pch.pri)
 
 # Link against TinyORM library (also adds defines and include headers)
 # ---

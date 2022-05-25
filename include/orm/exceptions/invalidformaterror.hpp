@@ -1,29 +1,26 @@
 #pragma once
-#ifndef INVALIDFORMATERROR_HPP
-#define INVALIDFORMATERROR_HPP
+#ifndef ORM_EXCEPTIONS_INVALIDFORMATERROR_HPP
+#define ORM_EXCEPTIONS_INVALIDFORMATERROR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include "orm/exceptions/logicerror.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Exceptions
 {
 
-    /*! Invalid format exception. */
-    class SHAREDLIB_EXPORT InvalidFormatError : public LogicError
+    /*! TinyORM invalid format exception. */
+    class InvalidFormatError : public LogicError
     {
         /*! Inherit constructors. */
         using LogicError::LogicError;
     };
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Exceptions
 
-#endif // INVALIDFORMATERROR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_EXCEPTIONS_INVALIDFORMATERROR_HPP

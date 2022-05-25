@@ -1,8 +1,11 @@
 #pragma once
-#ifndef TORRENTEAGER_WITHDEFAULT_HPP
-#define TORRENTEAGER_WITHDEFAULT_HPP
+#ifndef MODELS_TORRENTEAGER_WITHDEFAULT_HPP
+#define MODELS_TORRENTEAGER_WITHDEFAULT_HPP
 
 #include "orm/tiny/model.hpp"
+
+namespace Models
+{
 
 using Orm::Tiny::Model;
 
@@ -15,7 +18,9 @@ class TorrentEager_WithDefault final : public Model<TorrentEager_WithDefault>
     QString u_table {"torrents"};
 
     /*! The attributes that should be mutated to dates. @deprecated */
-    inline static QStringList u_dates {"added_on"};
+    inline static const QStringList u_dates {"added_on"};
 };
 
-#endif // TORRENTEAGER_WITHDEFAULT_HPP
+} // namespace Models
+
+#endif // MODELS_TORRENTEAGER_WITHDEFAULT_HPP

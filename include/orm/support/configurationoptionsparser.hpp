@@ -1,6 +1,6 @@
 #pragma once
-#ifndef CONFIGURATIONOPTIONSPARSER_HPP
-#define CONFIGURATIONOPTIONSPARSER_HPP
+#ifndef ORM_SUPPORT_CONFIGURATIONOPTIONSPARSER_HPP
+#define ORM_SUPPORT_CONFIGURATIONOPTIONSPARSER_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -8,10 +8,10 @@ TINY_SYSTEM_HEADER
 #include <QString>
 #include <QVariantHash>
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+#include "orm/macros/commonnamespace.hpp"
+
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm
 {
 
@@ -28,13 +28,16 @@ namespace Support
         to the QSqlDatabase::setConnectOptions(). */
     class ConfigurationOptionsParser
     {
+        Q_DISABLE_COPY(ConfigurationOptionsParser)
+
     public:
         /*! Constructor. */
-        ConfigurationOptionsParser(const Connectors::Connector &connector);
+        explicit ConfigurationOptionsParser(const Connectors::Connector &connector);
 
         /*! Parse the database configuration, validate, prepare, and merge connection
             options. */
         QString parseConfiguration(const QVariantHash &config) const;
+
     protected:
         /*! Validate the 'options' configuration type, has to be the QString or
             QVariantHash. */
@@ -42,6 +45,7 @@ namespace Support
         /*! Prepare options for parseConfigOptions() function, convert to
             the QVariantHash if needed. */
         QVariantHash prepareConfigOptions(const QVariant &options) const;
+
         /*! Merge the TinyORM connector options with user's provided connection
             options defined in the config. */
         QVariantHash mergeOptions(const QVariantHash &connectortOptions,
@@ -53,10 +57,9 @@ namespace Support
         const Connectors::Connector &m_connector;
     };
 
-} // namespace Orm::Support
+} // namespace Support
 } // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // CONFIGURATIONOPTIONSPARSER_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_SUPPORT_CONFIGURATIONOPTIONSPARSER_HPP

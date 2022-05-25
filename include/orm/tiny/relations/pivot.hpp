@@ -1,21 +1,19 @@
 #pragma once
-#ifndef PIVOT_HPP
-#define PIVOT_HPP
+#ifndef ORM_TINY_RELATIONS_PIVOT_HPP
+#define ORM_TINY_RELATIONS_PIVOT_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include "orm/tiny/relations/basepivot.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny::Relations
 {
 
     /*! Basic Pivot class. */
-    class SHAREDLIB_EXPORT Pivot : public BasePivot<Pivot>
+    class Pivot : public BasePivot<Pivot>
     {
         // TODO study, or stackoverflow friend X vs friend X<Pivot>, if template parameter deduced or all BaseXyz template instances are friends? silverqx
         friend Model<Pivot>;
@@ -27,13 +25,14 @@ namespace Orm::Tiny::Relations
     protected:
         /*! Indicates if the ID is auto-incrementing. */
         bool u_incrementing = false;
-        /*! The attributes that aren't mass assignable. */
+        /*! The attributes that aren't mass assignable, by default all attributes are
+            mass assignable for Pivots. */
+        T_THREAD_LOCAL
         inline static QStringList u_guarded;
     };
 
 } // namespace Orm::Tiny::Relations
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // PIVOT_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_RELATIONS_PIVOT_HPP

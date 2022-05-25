@@ -1,29 +1,26 @@
 #pragma once
-#ifndef INVALIDTEMPLATEARGUMENTERROR_HPP
-#define INVALIDTEMPLATEARGUMENTERROR_HPP
+#ifndef ORM_EXCEPTIONS_INVALIDTEMPLATEARGUMENTERROR_HPP
+#define ORM_EXCEPTIONS_INVALIDTEMPLATEARGUMENTERROR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include "orm/exceptions/invalidargumenterror.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Exceptions
 {
 
-    /*! Invalid template argument exception. */
-    class SHAREDLIB_EXPORT InvalidTemplateArgumentError : public InvalidArgumentError
+    /*! TinyORM invalid template argument exception. */
+    class InvalidTemplateArgumentError : public InvalidArgumentError
     {
         /*! Inherit constructors. */
         using InvalidArgumentError::InvalidArgumentError;
     };
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Exceptions
 
-#endif // INVALIDTEMPLATEARGUMENTERROR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_EXCEPTIONS_INVALIDTEMPLATEARGUMENTERROR_HPP

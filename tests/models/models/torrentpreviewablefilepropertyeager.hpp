@@ -1,8 +1,11 @@
 #pragma once
-#ifndef TORRENTPREVIEWABLEFILEPROPERTYEAGER_HPP
-#define TORRENTPREVIEWABLEFILEPROPERTYEAGER_HPP
+#ifndef MODELS_TORRENTPREVIEWABLEFILEPROPERTYEAGER_HPP
+#define MODELS_TORRENTPREVIEWABLEFILEPROPERTYEAGER_HPP
 
 #include "orm/tiny/model.hpp"
+
+namespace Models
+{
 
 using Orm::Tiny::Model;
 
@@ -15,8 +18,10 @@ class TorrentPreviewableFilePropertyEager final :
     /*! The table associated with the model. */
     QString u_table {"torrent_previewable_file_properties"};
 
-    /*! Indicates if the model should be timestamped. */
+    /*! Indicates whether the model should be timestamped. */
     bool u_timestamps = false;
 };
 
-#endif // TORRENTPREVIEWABLEFILEPROPERTYEAGER_HPP
+} // namespace Models
+
+#endif // MODELS_TORRENTPREVIEWABLEFILEPROPERTYEAGER_HPP

@@ -1,10 +1,14 @@
 #pragma once
-#ifndef MASSASSIGNMENTMODELS_HPP
-#define MASSASSIGNMENTMODELS_HPP
+#ifndef MODELS_MASSASSIGNMENTMODELS_HPP
+#define MODELS_MASSASSIGNMENTMODELS_HPP
 
 #include "orm/tiny/model.hpp"
 
-using namespace Orm::Constants;
+namespace Models
+{
+
+using Orm::Constants::NAME;
+using Orm::Constants::SIZE;
 
 using Orm::Tiny::Model;
 
@@ -26,19 +30,19 @@ class Torrent_GuardedAttribute final : public Model<Torrent_GuardedAttribute>
     QString u_table {"torrents"};
 
     /*! The attributes that are mass assignable. */
-    inline static QStringList u_fillable {
-        Orm::NAME,
-        "size",
+    inline static const QStringList u_fillable { // NOLINT(cppcoreguidelines-interfaces-global-init)
+        NAME,
+        SIZE,
         "progress",
         "added_on",
         "hash",
         "note",
-        Orm::UPDATED_AT,
+        UPDATED_AT,
     };
 
     /*! The attributes that aren't mass assignable. */
-    inline static QStringList u_guarded {
-        Orm::CREATED_AT,
+    inline static const QStringList u_guarded { // NOLINT(cppcoreguidelines-interfaces-global-init)
+        CREATED_AT,
     };
 };
 
@@ -68,4 +72,6 @@ class Torrent_GuardableColumn final :
     inline static QStringList u_guarded {"xyz"};
 };
 
-#endif // MASSASSIGNMENTMODELS_HPP
+} // namespace Models
+
+#endif // MODELS_MASSASSIGNMENTMODELS_HPP

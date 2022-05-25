@@ -1,15 +1,19 @@
 #pragma once
-#ifndef TORRENTPEER_HPP
-#define TORRENTPEER_HPP
+#ifndef MODELS_TORRENTPEER_HPP
+#define MODELS_TORRENTPEER_HPP
 
 #include "orm/tiny/model.hpp"
 
 #include "models/torrent.hpp"
 
+namespace Models
+{
+
 using Orm::Tiny::Relations::BelongsTo;
 
 class Torrent;
 
+// NOLINTNEXTLINE(misc-no-recursion)
 class TorrentPeer final : public Model<TorrentPeer, Torrent>
 {
     friend Model;
@@ -38,4 +42,6 @@ private:
     };
 };
 
-#endif // TORRENTPEER_HPP
+} // namespace Models
+
+#endif // MODELS_TORRENTPEER_HPP

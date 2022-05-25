@@ -1,8 +1,11 @@
 #pragma once
-#ifndef SETTING_HPP
-#define SETTING_HPP
+#ifndef MODELS_SETTING_HPP
+#define MODELS_SETTING_HPP
 
 #include "orm/tiny/model.hpp"
+
+namespace Models
+{
 
 using Orm::Tiny::Model;
 
@@ -19,4 +22,6 @@ private:
     bool u_incrementing = false;
 };
 
-#endif // SETTING_HPP
+} // namespace Models
+
+#endif // MODELS_SETTING_HPP

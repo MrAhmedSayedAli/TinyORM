@@ -61,12 +61,16 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     )
 endif()
 
-target_include_directories(${TinyUtils_target} PUBLIC
-    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>"
-)
+target_include_directories(${TinyUtils_target} PUBLIC "${PROJECT_SOURCE_DIR}/src")
 
 # TinyUtils defines
 # ---
+
+target_compile_definitions(${TinyUtils_target}
+    PRIVATE
+        # Disable debug output in release mode
+        $<$<NOT:$<CONFIG:Debug>>:QT_NO_DEBUG_OUTPUT>
+)
 
 if(BUILD_SHARED_LIBS)
     target_compile_definitions(${TinyUtils_target}

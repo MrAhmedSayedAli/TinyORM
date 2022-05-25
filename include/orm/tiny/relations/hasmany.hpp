@@ -1,16 +1,14 @@
 #pragma once
-#ifndef HASMANY_HPP
-#define HASMANY_HPP
+#ifndef ORM_TINY_RELATIONS_HASMANY_HPP
+#define ORM_TINY_RELATIONS_HASMANY_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include "orm/tiny/relations/hasoneormany.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny::Relations
 {
 
@@ -20,12 +18,17 @@ namespace Orm::Tiny::Relations
             public ManyRelation,
             public HasOneOrMany<Model, Related>
     {
+        Q_DISABLE_COPY(HasMany)
+
     protected:
         /*! Protected constructor. */
         HasMany(std::unique_ptr<Related> &&related, Model &parent,
                 const QString &foreignKey, const QString &localKey);
 
     public:
+        /*! Virtual destructor. */
+        inline ~HasMany() override = default;
+
         /*! Instantiate and initialize a new HasMany instance. */
         static std::unique_ptr<HasMany<Model, Related>>
         instance(std::unique_ptr<Related> &&related, Model &parent,
@@ -36,8 +39,8 @@ namespace Orm::Tiny::Relations
         initRelation(QVector<Model> &models, const QString &relation) const override;
 
         /*! Match the eagerly loaded results to their parents. */
-        void match(QVector<Model> &models, QVector<Related> results,
-                   const QString &relation) const override;
+        inline void match(QVector<Model> &models, QVector<Related> results,
+                          const QString &relation) const override;
 
         /*! Get the results of the relationship. */
         std::variant<QVector<Related>, std::optional<Related>>
@@ -51,7 +54,7 @@ namespace Orm::Tiny::Relations
 
         /* Others */
         /*! The textual representation of the Relation type. */
-        QString relationTypeName() const override;
+        inline QString relationTypeName() const override;
     };
 
     template<class Model, class Related>
@@ -89,8 +92,7 @@ namespace Orm::Tiny::Relations
     }
 
     template<class Model, class Related>
-    inline void
-    HasMany<Model, Related>::match(
+    void HasMany<Model, Related>::match(
             QVector<Model> &models,  QVector<Related> results,
             const QString &relation) const
     {
@@ -119,14 +121,13 @@ namespace Orm::Tiny::Relations
     }
 
     template<class Model, class Related>
-    inline QString HasMany<Model, Related>::relationTypeName() const
+    QString HasMany<Model, Related>::relationTypeName() const
     {
         return "HasMany";
     }
 
 } // namespace Orm::Tiny::Relations
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // HASMANY_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_RELATIONS_HASMANY_HPP

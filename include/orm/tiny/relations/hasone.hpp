@@ -1,6 +1,6 @@
 #pragma once
-#ifndef HASONE_HPP
-#define HASONE_HPP
+#ifndef ORM_TINY_RELATIONS_HASONE_HPP
+#define ORM_TINY_RELATIONS_HASONE_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -8,10 +8,8 @@ TINY_SYSTEM_HEADER
 #include "orm/tiny/relations/concerns/supportsdefaultmodels.hpp"
 #include "orm/tiny/relations/hasoneormany.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny::Relations
 {
 
@@ -22,12 +20,17 @@ namespace Orm::Tiny::Relations
             public HasOneOrMany<Model, Related>,
             public Concerns::SupportsDefaultModels<Model, Related>
     {
+        Q_DISABLE_COPY(HasOne)
+
     protected:
         /*! Protected constructor. */
         HasOne(std::unique_ptr<Related> &&related, Model &parent,
                const QString &foreignKey, const QString &localKey);
 
     public:
+        /*! Virtual destructor. */
+        inline ~HasOne() override = default;
+
         /*! Instantiate and initialize a new HasOne instance. */
         static std::unique_ptr<HasOne<Model, Related>>
         instance(std::unique_ptr<Related> &&related, Model &parent,
@@ -38,8 +41,8 @@ namespace Orm::Tiny::Relations
         initRelation(QVector<Model> &models, const QString &relation) const override;
 
         /*! Match the eagerly loaded results to their parents. */
-        void match(QVector<Model> &models, QVector<Related> results,
-                   const QString &relation) const override;
+        inline void match(QVector<Model> &models, QVector<Related> results,
+                          const QString &relation) const override;
 
         /*! Get the results of the relationship. */
         std::variant<QVector<Related>, std::optional<Related>>
@@ -47,11 +50,11 @@ namespace Orm::Tiny::Relations
 
         /* Others */
         /*! The textual representation of the Relation type. */
-        QString relationTypeName() const override;
+        inline QString relationTypeName() const override;
 
     protected:
         /*! Make a new related instance for the given model. */
-        Related newRelatedInstanceFor(const Model &) const override;
+        inline Related newRelatedInstanceFor(const Model &/*unused*/) const override;
     };
 
     template<class Model, class Related>
@@ -89,8 +92,7 @@ namespace Orm::Tiny::Relations
     }
 
     template<class Model, class Related>
-    inline void
-    HasOne<Model, Related>::match(
+    void HasOne<Model, Related>::match(
             QVector<Model> &models, QVector<Related> results,
             const QString &relation) const
     {
@@ -107,20 +109,20 @@ namespace Orm::Tiny::Relations
         )
             return this->getDefaultFor(this->m_parent);
 
-        // NRVO should kick in, I leave it const
-        const auto first = this->m_query->first();
+        // NRVO should kick in
+        auto first = this->m_query->first();
 
         return first ? first : this->getDefaultFor(this->m_parent);
     }
 
     template<class Model, class Related>
-    inline QString HasOne<Model, Related>::relationTypeName() const
+    QString HasOne<Model, Related>::relationTypeName() const
     {
         return "HasOne";
     }
 
     template<class Model, class Related>
-    inline Related
+    Related
     HasOne<Model, Related>::newRelatedInstanceFor(const Model &parent) const
     {
         return this->m_related->newInstance().setAttribute(
@@ -129,8 +131,7 @@ namespace Orm::Tiny::Relations
     }
 
 } // namespace Orm::Tiny::Relations
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // HASONE_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_RELATIONS_HASONE_HPP

@@ -1,10 +1,15 @@
 #pragma once
-#ifndef TORRENTPREVIEWABLEFILEEAGER_HPP
-#define TORRENTPREVIEWABLEFILEEAGER_HPP
+#ifndef MODELS_TORRENTPREVIEWABLEFILEEAGER_HPP
+#define MODELS_TORRENTPREVIEWABLEFILEEAGER_HPP
 
 #include "orm/tiny/model.hpp"
 
 #include "models/torrentpreviewablefilepropertyeager.hpp"
+
+namespace Models
+{
+
+using Orm::Constants::SIZE;
 
 using Orm::Tiny::Model;
 using Orm::Tiny::Relations::HasOne;
@@ -39,13 +44,15 @@ private:
     };
 
     /*! The attributes that are mass assignable. */
-    inline static QStringList u_fillable {
+    inline static QStringList u_fillable { // NOLINT(cppcoreguidelines-interfaces-global-init)
         "file_index",
         "filepath",
-        "size",
+        SIZE,
         "progress",
         "note",
     };
 };
 
-#endif // TORRENTPREVIEWABLEFILEEAGER_HPP
+} // namespace Models
+
+#endif // MODELS_TORRENTPREVIEWABLEFILEEAGER_HPP

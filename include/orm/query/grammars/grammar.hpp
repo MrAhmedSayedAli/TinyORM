@@ -1,16 +1,16 @@
 #pragma once
-#ifndef GRAMMAR_HPP
-#define GRAMMAR_HPP
+#ifndef ORM_QUERY_GRAMMARS_GRAMMAR_HPP
+#define ORM_QUERY_GRAMMARS_GRAMMAR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
+#include <optional>
+
 #include "orm/basegrammar.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Query::Grammars
 {
 
@@ -22,9 +22,9 @@ namespace Orm::Query::Grammars
 
     public:
         /*! Default constructor. */
-        Grammar() = default;
+        inline Grammar() = default;
         /*! Pure virtual destructor. */
-        virtual ~Grammar() = 0;
+        inline ~Grammar() override = 0;
 
         /*! Compile a select query into SQL. */
         QString compileSelect(QueryBuilder &query) const;
@@ -38,7 +38,7 @@ namespace Orm::Query::Grammars
         compileInsertOrIgnore(const QueryBuilder &query,
                               const QVector<QVariantMap> &values) const;
         /*! Compile an insert and get ID statement into SQL. */
-        virtual QString
+        inline virtual QString
         compileInsertGetId(const QueryBuilder &query,
                            const QVector<QVariantMap> &values,
                            const QString &sequence) const;
@@ -205,18 +205,17 @@ namespace Orm::Query::Grammars
                                     const QVector<BindingType> &exclude) const;
     };
 
-    inline Grammar::~Grammar() = default;
+    Grammar::~Grammar() = default;
 
-    inline QString Grammar::compileInsertGetId(
+    QString Grammar::compileInsertGetId(
             const QueryBuilder &query, const QVector<QVariantMap> &values,
-            const QString &) const
+            const QString &/*unused*/) const
     {
         return compileInsert(query, values);
     }
 
 } // namespace Orm::Query::Grammars
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // GRAMMAR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_QUERY_GRAMMARS_GRAMMAR_HPP

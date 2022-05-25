@@ -1,28 +1,30 @@
 #pragma once
-#ifndef CONNECTOR_HPP
-#define CONNECTOR_HPP
+#ifndef ORM_CONNCECTORS_CONNECTOR_HPP
+#define ORM_CONNCECTORS_CONNECTOR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
-#include <QtSql/QSqlDatabase>
 #include <QVariantHash>
+#include <QtSql/QSqlDatabase>
 
 #include "orm/concerns/detectslostconnections.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Connectors
 {
 
     /*! Connectors base class. */
     class Connector : public Concerns::DetectsLostConnections
     {
+        Q_DISABLE_COPY(Connector)
+
     public:
+        /*! Default constructor. */
+        inline Connector() = default;
         /*! Pure virtual destructor. */
-        virtual ~Connector() = 0;
+        inline ~Connector() override = 0;
 
         /*! Create a new QSqlDatabase connection, factory method. */
         QSqlDatabase
@@ -60,11 +62,10 @@ namespace Orm::Connectors
         static const QString m_configureErrorMessage;
     };
 
-    inline Connector::~Connector() = default;
+    Connector::~Connector() = default;
 
 } // namespace Orm::Connectors
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // CONNECTOR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_CONNCECTORS_CONNECTOR_HPP

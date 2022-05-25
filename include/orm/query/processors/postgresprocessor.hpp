@@ -1,16 +1,14 @@
 #pragma once
-#ifndef POSTGRESPROCESSOR_HPP
-#define POSTGRESPROCESSOR_HPP
+#ifndef ORM_QUERY_PROCESSORS_POSTGRESPROCESSOR_HPP
+#define ORM_QUERY_PROCESSORS_POSTGRESPROCESSOR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include "orm/query/processors/processor.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Query::Processors
 {
 
@@ -21,15 +19,16 @@ namespace Orm::Query::Processors
 
     public:
         /*! Default constructor. */
-        PostgresProcessor() = default;
+        inline PostgresProcessor() = default;
+        /*! Virtual destructor. */
+        inline ~PostgresProcessor() override = default;
 
         /*! Process the results of a column listing query. */
         QStringList processColumnListing(QSqlQuery &query) const override;
     };
 
 } // namespace Orm::Query::Processors
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // POSTGRESPROCESSOR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_QUERY_PROCESSORS_POSTGRESPROCESSOR_HPP

@@ -2,18 +2,20 @@
 #ifndef ORM_VERSION_HPP
 #define ORM_VERSION_HPP
 
+// Excluded for the Resource compiler
 #ifndef RC_INVOKED
-#include "orm/macros/systemheader.hpp"
+#  include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 #endif
 
 #define TINYORM_VERSION_MAJOR 0
-#define TINYORM_VERSION_MINOR 1
-#define TINYORM_VERSION_BUGFIX 0
+#define TINYORM_VERSION_MINOR 4
+#define TINYORM_VERSION_BUGFIX 1
 #define TINYORM_VERSION_BUILD 0
 // Should be empty for stable releases, and use hypen before for SemVer compatibility!
 #define TINYORM_VERSION_STATUS ""
 
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define TINYORM__STRINGIFY(x) #x
 #define TINYORM_STRINGIFY(x) TINYORM__STRINGIFY(x)
 

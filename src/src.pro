@@ -33,17 +33,11 @@ include(../qmake/common.pri)
 # ---
 
 DEFINES += PROJECT_TINYORM
-# Log queries with a time measurement
-DEFINES += TINYORM_DEBUG_SQL
 
 # Build as the shared library
 CONFIG(shared, dll|shared|static|staticlib) | \
 CONFIG(dll, dll|shared|static|staticlib): \
-    DEFINES += TINYORM_BUILDING_SHARED
-
-# Enable code needed by tests, eg. connection overriding in the Model
-build_tests: \
-    DEFINES += TINYORM_TESTS_CODE
+    DEFINES *= TINYORM_BUILDING_SHARED
 
 # TinyORM library header and source files
 # ---
@@ -51,6 +45,14 @@ build_tests: \
 # tiny_version_numbers() depends on HEADERS (version.hpp)
 include(../include/include.pri)
 include(src.pri)
+
+# TinyTom header and source files
+# ---
+
+!disable_tom {
+    include(../tom/include/include.pri)
+    include(../tom/src/src.pri)
+}
 
 # File version
 # ---
@@ -73,8 +75,7 @@ tiny_resource_and_manifest(                                                     
 # Use Precompiled headers (PCH)
 # ---
 
-precompile_header: \
-    include(../include/pch.pri)
+include(../include/pch.pri)
 
 # Deployment
 # ---
@@ -88,13 +89,15 @@ win32-msvc:CONFIG(debug, debug|release) {
 # Some info output
 # ---
 
-CONFIG(debug, debug|release):!build_pass: message( "Project is built in DEBUG mode." )
-CONFIG(release, debug|release):!build_pass: message( "Project is built in RELEASE mode." )
+!build_pass {
+    CONFIG(debug, debug|release):   message( "Project is built in DEBUG mode." )
+    CONFIG(release, debug|release): message( "Project is built in RELEASE mode." )
 
-# Disable debug output in release mode
-CONFIG(release, debug|release) {
-    !build_pass: message( "Disabling debug output." )
-    DEFINES += QT_NO_DEBUG_OUTPUT
+    !disable_orm: message("Build ORM-related source code.")
+    else:         message("Disable ORM-related source code (build the query builder \
+only).")
+
+    mysql_ping: message("Enable MySQL ping on Orm::MySqlConnection.")
 }
 
 # User Configuration

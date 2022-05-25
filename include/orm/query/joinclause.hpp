@@ -1,16 +1,14 @@
 #pragma once
-#ifndef JOINCLAUSE_HPP
-#define JOINCLAUSE_HPP
+#ifndef ORM_QUERY_JOINCLAUSE_HPP
+#define ORM_QUERY_JOINCLAUSE_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
 #include "orm/query/querybuilder.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Query
 {
 
@@ -18,8 +16,21 @@ namespace Orm::Query
     class SHAREDLIB_EXPORT JoinClause final : public Builder
     {
     public:
-        /*! Join table type. */
+        /*! Type for the Join table (FromClause). */
         using JoinTable = FromClause;
+
+        /*! Copy constructor. */
+        inline JoinClause(const JoinClause &) = default;
+        /*! Deleted copy assignment operator (class constains reference and const). */
+        inline JoinClause &operator=(const JoinClause &) = delete;
+
+        /*! Move constructor. */
+        inline JoinClause(JoinClause &&) = default;
+        /*! Deleted move assignment operator (class constains reference and const). */
+        inline JoinClause &operator=(JoinClause &&) = delete;
+
+        /*! Virtual destructor. */
+        inline ~JoinClause() final = default;
 
         /*! Constructor with the table as QString. */
         JoinClause(const Builder &query, const QString &type, const QString &table);
@@ -38,17 +49,17 @@ namespace Orm::Query
                          const QString &second);
 
         /*! Get the type of join being performed. */
-        const QString &getType() const;
+        inline const QString &getType() const;
         /*! Get the table the join clause is joining to. */
-        const std::variant<std::monostate, QString, Expression> &
+        inline const std::variant<std::monostate, QString, Expression> &
         getTable() const;
 
         /*! Get a new instance of the join clause builder. */
-        QSharedPointer<Builder> newQuery() const override;
+        QSharedPointer<Builder> newQuery() const final;
 
     protected:
         /*! Create a new query instance for a sub-query. */
-        QSharedPointer<Builder> forSubQuery() const override;
+        QSharedPointer<Builder> forSubQuery() const final;
 
     private:
         /*! The type of join being performed. */
@@ -57,21 +68,20 @@ namespace Orm::Query
         const JoinTable m_table;
     };
 
-    inline const QString &
+    const QString &
     JoinClause::getType() const
     {
         return m_type;
     }
 
-    inline const std::variant<std::monostate, QString, Expression> &
+    const std::variant<std::monostate, QString, Expression> &
     JoinClause::getTable() const
     {
         return m_table;
     }
 
 } // namespace Orm::Query
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // JOINCLAUSE_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_QUERY_JOINCLAUSE_HPP

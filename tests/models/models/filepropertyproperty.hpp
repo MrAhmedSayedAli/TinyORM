@@ -1,15 +1,19 @@
 #pragma once
-#ifndef FILEPROPERTYPROPERTY_HPP
-#define FILEPROPERTYPROPERTY_HPP
+#ifndef MODELS_FILEPROPERTYPROPERTY_HPP
+#define MODELS_FILEPROPERTYPROPERTY_HPP
 
 #include "orm/tiny/model.hpp"
 
 #include "models/torrentpreviewablefileproperty.hpp"
 
+namespace Models
+{
+
 using Orm::Tiny::Relations::BelongsTo;
 
 class TorrentPreviewableFileProperty;
 
+// NOLINTNEXTLINE(misc-no-recursion)
 class FilePropertyProperty final :
         public Model<FilePropertyProperty, TorrentPreviewableFileProperty>
 {
@@ -21,8 +25,8 @@ public:
     std::unique_ptr<BelongsTo<FilePropertyProperty, TorrentPreviewableFileProperty>>
     fileProperty()
     {
-        return belongsTo<TorrentPreviewableFileProperty>("file_property_id", {},
-                                                         __func__);
+        return belongsTo<TorrentPreviewableFileProperty>(
+                    "file_property_id", {}, static_cast<const char *>(__func__));
     }
 
 private:
@@ -43,4 +47,6 @@ private:
     QStringList u_touches {"fileProperty"};
 };
 
-#endif // FILEPROPERTYPROPERTY_HPP
+} // namespace Models
+
+#endif // MODELS_FILEPROPERTYPROPERTY_HPP

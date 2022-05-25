@@ -1,10 +1,13 @@
 #pragma once
-#ifndef TORRENTEAGER_FAILED_HPP
-#define TORRENTEAGER_FAILED_HPP
+#ifndef MODELS_TORRENTEAGER_FAILED_HPP
+#define MODELS_TORRENTEAGER_FAILED_HPP
 
 #include "orm/tiny/model.hpp"
 
 #include "models/torrentpreviewablefileeager.hpp"
+
+namespace Models
+{
 
 using Orm::Tiny::Model;
 using Orm::Tiny::Relations::HasMany;
@@ -38,7 +41,9 @@ private:
     };
 
     /*! The attributes that should be mutated to dates. @deprecated */
-    inline static QStringList u_dates {"added_on"};
+    inline static const QStringList u_dates {"added_on"};
 };
 
-#endif // TORRENTEAGER_FAILED_HPP
+} // namespace Models
+
+#endif // MODELS_TORRENTEAGER_FAILED_HPP

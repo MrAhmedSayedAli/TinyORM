@@ -22,19 +22,60 @@ CONFIG -= c++11 app_bundle
 # Disables all the APIs deprecated before Qt 6.0.0
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000
 
-#DEFINES += QT_ASCII_CAST_WARNINGS
-#DEFINES += QT_NO_CAST_FROM_ASCII
-#DEFINES += QT_RESTRICTED_CAST_FROM_ASCII
-DEFINES += QT_NO_CAST_TO_ASCII
-DEFINES += QT_NO_CAST_FROM_BYTEARRAY
-DEFINES += QT_USE_QSTRINGBUILDER
-DEFINES += QT_STRICT_ITERATORS
+#DEFINES *= QT_ASCII_CAST_WARNINGS
+#DEFINES *= QT_NO_CAST_FROM_ASCII
+#DEFINES *= QT_RESTRICTED_CAST_FROM_ASCII
+DEFINES *= QT_NO_CAST_TO_ASCII
+DEFINES *= QT_NO_CAST_FROM_BYTEARRAY
+DEFINES *= QT_USE_QSTRINGBUILDER
+DEFINES *= QT_STRICT_ITERATORS
+
+# TinyORM configuration
+# ---
+
+# Use extern constants for shared build
+CONFIG(shared, dll|shared|static|staticlib) | \
+CONFIG(dll, dll|shared|static|staticlib): \
+    # Support override because inline_constants can be used in the shared build too
+    !inline_constants: \
+        CONFIG += extern_constants
+
+# Archive library build (static build)
+else: \
+    CONFIG += inline_constants
 
 # TinyORM defines
 # ---
 
+# Release build
+CONFIG(release, debug|release): DEFINES += TINYORM_NO_DEBUG
+# Debug build
+CONFIG(debug, debug|release): DEFINES *= TINYORM_DEBUG
+
 # Enable MySQL ping on Orm::MySqlConnection
-mysql_ping: DEFINES += TINYORM_MYSQL_PING
+mysql_ping: DEFINES *= TINYORM_MYSQL_PING
+
+# Log queries with a time measurement
+CONFIG(release, debug|release): DEFINES += TINYORM_NO_DEBUG_SQL
+CONFIG(debug, debug|release): DEFINES *= TINYORM_DEBUG_SQL
+
+# Enable code needed by tests, eg. connection overriding in the Model
+!disable_orm:build_tests: \
+    DEFINES *= TINYORM_TESTS_CODE
+
+# TinyTom related defines
+# ---
+
+!disable_tom {
+    # Release build
+    CONFIG(release, debug|release): DEFINES += TINYTOM_NO_DEBUG
+    # Debug build
+    CONFIG(debug, debug|release): DEFINES *= TINYTOM_DEBUG
+
+    # Enable code needed by tests (modify the migrate:status command for tests need)
+    build_tests: \
+        DEFINES *= TINYTOM_TESTS_CODE
+}
 
 # Platform specific configuration
 # ---
@@ -53,17 +94,3 @@ debug_and_release: {
         TINY_RELEASE_TYPE = $$quote(/debug)
 }
 else: TINY_RELEASE_TYPE =
-
-# Other
-# ---
-
-# Use extern constants for shared build
-CONFIG(shared, dll|shared|static|staticlib) | \
-CONFIG(dll, dll|shared|static|staticlib): \
-    # Support override because inline_constants can be used in the shared build too
-    !inline_constants: \
-        CONFIG += extern_constants
-
-# Archive library build
-else: \
-    CONFIG += inline_constants

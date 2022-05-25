@@ -1,25 +1,36 @@
 #include "orm/basegrammar.hpp"
 
 #include "orm/exceptions/runtimeerror.hpp"
+#include "orm/utils/type.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm
 {
 
 /*
    wrap methods are only for column names, table names and identifiers, they use
    primarily Column type and QString type.
-   parameter()/parametrize() methods are for values, parameter uses QVariant only and
+   wrapValue() for one string column/table/identifier.
+   wrapTable() for table, columnize() for columns.
+
+   parameter()/parametrize() methods are for values, it replaces value/s with ? or use
+   a raw expression if was passed (Query::Expression), parameter uses QVariant only and
    parametrize uses Container type and Parametrize constraint.
+
    columnize() is used for column names containers (constrained by ColumnContainer
-   concept) and it calls wrapArray() internally, columnize uses ColumnContainer
-   constraint.
-   Values or columns/tables/identifiers can also be the Query::Expression.
+   concept) and it calls wrapArray() and other wrap related methods internally,
+   columnize uses ColumnContainer constraint, it converts a vector of column names
+   into a wrapped comma delimited string.
+   Columns/tables/identifiers can also be the Query::Expression.
    The Query::Expression is always converted to the QString and appended to the query.
-   quoteString() can be used to quote string literals, it is not used anywhere for now.
+
+   quoteString() can be used to quote string literals, it also supports containers.
+
+   If next time you will think that some method for quoting is missing then it doesn't,
+   for parameter bindings (?) use parameter()/parametrize(), for column names use
+   wrap() related methods and for quoting raw strings eg. in the schema use
+   the quoteString(), all these methods support container types.
 */
 
 const QString &BaseGrammar::getDateFormat() const
@@ -29,12 +40,13 @@ const QString &BaseGrammar::getDateFormat() const
     return cachedFormat;
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 QString BaseGrammar::wrap(const QString &value, const bool prefixAlias) const
 {
     /* If the value being wrapped has a column alias we will need to separate out
        the pieces so we can wrap each of the segments of the expression on its
        own, and then join these both back together using the "as" connector. */
-    if (value.contains(" as "))
+    if (value.contains(QStringLiteral(" as ")))
         return wrapAliasedValue(value, prefixAlias);
 
     // FEATURE json columns, this code has to be in the Grammars::Grammar silverqx
@@ -54,16 +66,21 @@ QString BaseGrammar::wrap(const Column &value) const
             : wrap(std::get<QString>(value));
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 QString BaseGrammar::wrapTable(const QString &table) const
 {
-    return wrap(QStringLiteral("%1%2").arg(m_tablePrefix, table), true);
+    return wrap(NOSPACE.arg(m_tablePrefix, table), true);
 }
 
 QString BaseGrammar::wrapTable(const FromClause &table) const
 {
     if (std::holds_alternative<std::monostate>(table))
-        throw Exceptions::RuntimeError("std::monostate in wrapTable().");
-    else if (std::holds_alternative<Expression>(table))
+        // Not InvalidArgumentError because table argument was not passed by user
+        throw Exceptions::RuntimeError(
+                QStringLiteral("Unexpected std::monostate value in %1().")
+                .arg(__tiny_func__));
+
+    if (std::holds_alternative<Expression>(table))
         return getValue(std::get<Expression>(table)).value<QString>();
 
     return wrapTable(std::get<QString>(table));
@@ -101,12 +118,15 @@ QString BaseGrammar::unqualifyColumn(const QString &column) const
     return column.split(DOT).last().trimmed();
 }
 
+/* protected */
+
 QString BaseGrammar::parameter(const QVariant &value) const
 {
     return isExpression(value) ? getValue(value).value<QString>()
                                : QStringLiteral("?");
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 QString BaseGrammar::wrapAliasedValue(const QString &value, const bool prefixAlias) const
 {
     auto segments = getSegmentsFromFrom(value);
@@ -115,20 +135,21 @@ QString BaseGrammar::wrapAliasedValue(const QString &value, const bool prefixAli
        as well in order to generate proper syntax. If this is a column of course
        no prefix is necessary. The condition will be true when from wrapTable. */
     if (prefixAlias)
-        segments[1] = QStringLiteral("%1%2").arg(m_tablePrefix, segments[1]);
+        segments[1] = NOSPACE.arg(m_tablePrefix, segments[1]);
 
     return QStringLiteral("%1 as %2").arg(wrap(segments[0]), wrapValue(segments[1]));
 }
 
 QString BaseGrammar::wrapValue(QString value) const
 {
-    if (value == '*')
+    if (value == QChar('*'))
         return value;
 
     return QStringLiteral("\"%1\"").arg(value.replace(QStringLiteral("\""),
                                                       QStringLiteral("\"\"")));
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 QString BaseGrammar::wrapSegments(QStringList segments) const
 {
     const auto size = segments.size();
@@ -172,26 +193,6 @@ QString BaseGrammar::getAliasFromFrom(const QString &from) const
     return segments.last();
 }
 
-QString BaseGrammar::columnizeInternal(const QVector<QString> &columns) const
-{
-    QString columnized;
-
-    if (columns.isEmpty())
-        return columnized;
-
-    const auto end = columns.cend() - 1;
-    auto it = columns.begin();
-
-    for (; it < end; ++it)
-        columnized += QStringLiteral("%1, ").arg(*it);
-
-    if (it == end)
-        columnized += *it;
-
-    return columnized;
-}
-
 } // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

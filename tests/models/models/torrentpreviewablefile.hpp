@@ -1,11 +1,17 @@
 #pragma once
-#ifndef TORRENTPREVIEWABLEFILE_HPP
-#define TORRENTPREVIEWABLEFILE_HPP
+#ifndef MODELS_TORRENTPREVIEWABLEFILE_HPP
+#define MODELS_TORRENTPREVIEWABLEFILE_HPP
 
 #include "orm/tiny/model.hpp"
 
 #include "models/torrent.hpp"
 #include "models/torrentpreviewablefileproperty.hpp"
+
+namespace Models
+{
+
+using Orm::Constants::NAME;
+using Orm::Constants::SIZE;
 
 using Orm::Tiny::Relations::BelongsTo;
 using Orm::Tiny::Relations::HasOne;
@@ -13,6 +19,7 @@ using Orm::Tiny::Relations::HasOne;
 class Torrent;
 class TorrentPreviewableFileProperty;
 
+// NOLINTNEXTLINE(misc-no-recursion)
 class TorrentPreviewableFile final :
         public Model<TorrentPreviewableFile, Torrent, TorrentPreviewableFileProperty>
 {
@@ -46,7 +53,7 @@ public:
         // Ownership of a unique_ptr()
         auto relation = belongsTo<Torrent>();
 
-        relation->withDefault({{NAME, "default_torrent_name"}, {"size", 123}});
+        relation->withDefault({{NAME, "default_torrent_name"}, {SIZE, 123}});
 
         return relation;
     }
@@ -75,7 +82,7 @@ public:
     {
         auto relation = hasOne<TorrentPreviewableFileProperty>("previewable_file_id");
 
-        relation->withDefault({{NAME, "default_fileproperty_name"}, {"size", 321}});
+        relation->withDefault({{NAME, "default_fileproperty_name"}, {SIZE, 321}});
 
         return relation;
     }
@@ -102,10 +109,10 @@ private:
     };
 
     /*! The attributes that are mass assignable. */
-    inline static QStringList u_fillable {
+    inline static QStringList u_fillable { // NOLINT(cppcoreguidelines-interfaces-global-init)
         "file_index",
         "filepath",
-        "size",
+        SIZE,
         "progress",
         "note",
     };
@@ -114,4 +121,6 @@ private:
     QStringList u_touches {"torrent"};
 };
 
-#endif // TORRENTPREVIEWABLEFILE_HPP
+} // namespace Models
+
+#endif // MODELS_TORRENTPREVIEWABLEFILE_HPP

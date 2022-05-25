@@ -1,6 +1,6 @@
 #pragma once
-#ifndef MODELNOTFOUNDERROR_HPP
-#define MODELNOTFOUNDERROR_HPP
+#ifndef ORM_TINY_EXCEPTIONS_MODELNOTFOUNDERROR_HPP
+#define ORM_TINY_EXCEPTIONS_MODELNOTFOUNDERROR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -9,10 +9,8 @@ TINY_SYSTEM_HEADER
 
 #include "orm/exceptions/runtimeerror.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Tiny::Exceptions
 {
 
@@ -30,15 +28,15 @@ namespace Orm::Tiny::Exceptions
                                     const QVector<QVariant> &ids = {});
 
         /*! Get the affected TinyORM model. */
-        const QString &getModel() const;
+        inline const QString &getModel() const;
         /*! Get the affected TinyORM model IDs. */
-        const QVector<QVariant> getIds() const;
+        inline const QVector<QVariant> &getIds() const;
 
     protected:
         /*! Name of the affected TinyORM model. */
-        const QString m_model;
+        QString m_model;
         /*! The affected model IDs. */
-        const QVector<QVariant> m_ids;
+        QVector<QVariant> m_ids;
 
     private:
         /*! Format the error message. */
@@ -46,21 +44,20 @@ namespace Orm::Tiny::Exceptions
                               const QVector<QVariant> &ids = {}) const;
     };
 
-    inline const QString &
+    const QString &
     ModelNotFoundError::getModel() const
     {
         return m_model;
     }
 
-    inline const QVector<QVariant>
+    const QVector<QVariant> &
     ModelNotFoundError::getIds() const
     {
         return m_ids;
     }
 
-} // namespace Orm::Tiny
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Tiny::Exceptions
 
-#endif // MODELNOTFOUNDERROR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_EXCEPTIONS_MODELNOTFOUNDERROR_HPP

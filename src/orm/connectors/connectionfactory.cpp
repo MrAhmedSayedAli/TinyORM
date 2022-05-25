@@ -7,15 +7,10 @@
 #include "orm/postgresconnection.hpp"
 #include "orm/sqliteconnection.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Connectors
 {
-
-ConnectionFactory::ConnectionFactory()
-{}
 
 std::unique_ptr<DatabaseConnection>
 ConnectionFactory::make(QVariantHash &config, const QString &name) const
@@ -29,22 +24,26 @@ std::unique_ptr<ConnectorInterface>
 ConnectionFactory::createConnector(const QVariantHash &config) const
 {
     // This method is public, so I left this check here
-    if (!config.contains("driver"))
-        throw std::domain_error("A 'driver' configuration parameter must be specified.");
+    if (!config.contains(driver_))
+        throw Exceptions::RuntimeError(
+                "A 'driver' configuration parameter must be specified.");
 
-    const auto driver = config["driver"].value<QString>();
+    const auto driver = config[driver_].value<QString>();
 
-    if (driver == "QMYSQL")
+    if (driver == QMYSQL)
         return std::make_unique<MySqlConnector>();
-    else if (driver == "QPSQL")
+
+    if (driver == QPSQL)
         return std::make_unique<PostgresConnector>();
-    else if (driver == "QSQLITE")
+
+    if (driver == QSQLITE)
         return std::make_unique<SQLiteConnector>();
-//    else if (driver == "SQLSRV")
+
+//    if (driver == "SQLSRV")
 //        return std::make_unique<SqlServerConnector>();
-    else
-        throw std::domain_error(
-                "Unsupported driver '" + driver.toStdString() + "'.");
+
+    throw Exceptions::RuntimeError(QStringLiteral("Unsupported driver '%1'.")
+                                   .arg(driver));
 }
 
 QVariantHash &
@@ -55,25 +54,33 @@ ConnectionFactory::parseConfig(QVariantHash &config, const QString &name) const
 
     normalizeDriverName(config);
 
-    if (!config.contains("database"))
-        config.insert("database", QString(""));
+    if (!config.contains(database_))
+        config.insert(database_, EMPTY);
 
-    if (!config.contains("prefix"))
-        config.insert("prefix", QString(""));
+    if (!config.contains(prefix_))
+        config.insert(prefix_, EMPTY);
 
-    if (!config.contains("options"))
-        config.insert("options", QVariantHash());
+    if (!config.contains(options_))
+        config.insert(options_, QVariantHash());
+
+    if (!config.contains(prefix_indexes))
+        config.insert(prefix_indexes, false);
+
+    // FUTURE connector, this can be enhanced, eg. add default values per driver, eg. engine_ for mysql is missing, can not be added because is driver specific silverqx
+    if (config[driver_] == QPSQL && !config.contains(dont_drop))
+        // spatial_ref_sys table is used by the PostGIS
+        config.insert(dont_drop, QStringList {QStringLiteral("spatial_ref_sys")});
 
     return config;
 }
 
 void ConnectionFactory::normalizeDriverName(QVariantHash &config) const
 {
-    if (!config.contains("driver"))
-        config.insert("driver", QString(""));
+    if (!config.contains(driver_))
+        config.insert(driver_, EMPTY);
 
     else {
-        auto &driver = config["driver"];
+        auto &driver = config[driver_];
 
         driver = driver.value<QString>().toUpper();
     }
@@ -83,15 +90,15 @@ std::unique_ptr<DatabaseConnection>
 ConnectionFactory::createSingleConnection(QVariantHash &config) const
 {
     return createConnection(
-                config["driver"].value<QString>(), createQSqlDatabaseResolver(config),
-                config["database"].value<QString>(), config["prefix"].value<QString>(),
+                config[driver_].value<QString>(), createQSqlDatabaseResolver(config),
+                config[database_].value<QString>(), config[prefix_].value<QString>(),
                 config);
 }
 
 std::function<ConnectionName()>
 ConnectionFactory::createQSqlDatabaseResolver(QVariantHash &config) const
 {
-    return config.contains("host")
+    return config.contains(host_)
             ? createQSqlDatabaseResolverWithHosts(config)
             : createQSqlDatabaseResolverWithoutHosts(config);
 }
@@ -113,7 +120,7 @@ ConnectionFactory::createQSqlDatabaseResolverWithHosts(const QVariantHash &confi
            will be successful. */
         for (const auto &host : hosts)
             try {
-                configCopy["host"] = host;
+                configCopy[host_] = host;
 
                 return createConnector(configCopy)->connect(configCopy);
 
@@ -144,30 +151,30 @@ ConnectionFactory::createConnection(
         const QString &database, const QString &prefix,
         const QVariantHash &config) const
 {
-    if (driver == "QMYSQL")
+    if (driver == QMYSQL)
         return std::make_unique<MySqlConnection>(std::move(connection), database, prefix,
                                                  config);
-    else if (driver == "QPSQL")
+    if (driver == QPSQL)
         return std::make_unique<PostgresConnection>(std::move(connection), database,
                                                     prefix, config);
-    else if (driver == "QSQLITE")
+    if (driver == QSQLITE)
         return std::make_unique<SQLiteConnection>(std::move(connection), database,
                                                   prefix, config);
-//    else if (driver == "SQLSRV")
+//    if (driver == "SQLSRV")
 //        return std::make_unique<SqlServerConnection>(std::move(connection), database,
 //                                                     prefix, config);
-    else
-        throw std::domain_error(
-                "Unsupported driver '" + driver.toStdString() + "'.");
+
+    throw Exceptions::RuntimeError(QStringLiteral("Unsupported driver '%1'.")
+                                   .arg(driver));
 }
 
 QStringList ConnectionFactory::parseHosts(const QVariantHash &config) const
 {
-    if (!config.contains("host"))
-        // TODO now unify exception, std::domain_error is for user code, create own exceptions and use InvalidArgumentError, or runtime/logic error silverqx
-        throw std::domain_error("Database 'host' configuration parameter is required.");
+    if (!config.contains(host_))
+        throw Exceptions::RuntimeError(
+                "Database 'host' configuration parameter is required.");
 
-    const auto hosts = config["host"].value<QStringList>();
+    auto hosts = config[host_].value<QStringList>();
 
     validateHosts(hosts);
 
@@ -178,11 +185,11 @@ void ConnectionFactory::validateHosts(const QStringList &hosts) const
 {
     for (const auto &host : hosts)
         if (host.isEmpty())
-            throw std::domain_error("Database 'host' configuration parameter "
-                                        "can not contain empty value.");
+            throw Exceptions::RuntimeError(
+                    "Database 'host' configuration parameter can not contain empty "
+                    "value.");
 }
 
 } // namespace Orm::Connectors
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

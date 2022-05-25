@@ -1,6 +1,6 @@
 #pragma once
-#ifndef UTILS_TYPE_HPP
-#define UTILS_TYPE_HPP
+#ifndef ORM_UTILS_TYPE_HPP
+#define ORM_UTILS_TYPE_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -11,23 +11,26 @@ TINY_SYSTEM_HEADER
 #include <typeinfo>
 
 #ifdef __GNUG__
-#include <cxxabi.h>
+#  include <cxxabi.h>
 #endif
 
-#include "orm/utils/export.hpp"
+#include "orm/macros/commonnamespace.hpp"
+#include "orm/macros/export.hpp"
 
 #ifdef __GNUG__
-#  define __tiny_func__ Orm::Utils::Type::prettyFunction(__PRETTY_FUNCTION__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
+#  define __tiny_func__ \
+    Orm::Utils::Type::prettyFunction(static_cast<const char *>(__PRETTY_FUNCTION__))
 #elif _MSC_VER
-#  define __tiny_func__ Orm::Utils::Type::prettyFunction(__FUNCTION__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
+#  define __tiny_func__ \
+    Orm::Utils::Type::prettyFunction(static_cast<const char *>(__FUNCTION__))
 #else
-#  define __tiny_func__ __FUNCTION__
+#  define __tiny_func__ QString {__FUNCTION__}
 #endif
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Utils
 {
 
@@ -44,53 +47,58 @@ namespace Orm::Utils
 
         /*! Class name with or w/o a namespace and w/o template parameters. */
         template<typename T>
-        static QString classPureBasename(bool withNamespace = false);
+        inline static QString classPureBasename(bool withNamespace = false);
         /*! Class name with or w/o a namespace and w/o template parameters. */
         template<typename T>
-        static QString classPureBasename(const T &type, bool withNamespace = false);
+        inline static QString
+        classPureBasename(const T &type, bool withNamespace = false);
         /*! Class name with or w/o a namespace and w/o template parameters. */
-        static QString classPureBasename(
-                std::type_index typeIndex, bool withNamespace = false);
+        static QString
+        classPureBasename(std::type_index typeIndex, bool withNamespace = false);
 
         /*! Return a pretty function name in the following format: Xyz::function. */
         static QString prettyFunction(const QString &function);
 
+        /*! Determine whether a string is true bool value (false for "", "0", "false"). */
+        static bool isTrue(const QString &value);
+
     private:
         /*! Class name with or w/o a namespace and w/o template parameters, common
             code. */
-        static QString classPureBasenameInternal(
-                const std::type_info &typeInfo, bool withNamespace);
+        static QString
+        classPureBasenameInternal(const std::type_info &typeInfo, bool withNamespace);
         /*! Class name with or w/o a namespace and w/o template parameters, common
             code. */
-        static QString classPureBasenameInternal(
-                const char *typeName, bool withNamespace);
+        static QString
+        classPureBasenameInternal(const char *typeName, bool withNamespace);
         /*! Class name with or w/o a namespace and w/o template parameters, msvc code. */
-        static QString classPureBasenameMsvc(
-                const QString &className, bool withNamespace);
+        static QString
+        classPureBasenameMsvc(const QString &className, bool withNamespace);
         /*! Class name with or w/o a namespace and w/o template parameters, gcc code. */
-        static QString classPureBasenameGcc(
-                const QString &className, bool withNamespace);
+        static QString
+        classPureBasenameGcc(const QString &className, bool withNamespace);
     };
 
     template<typename T>
-    inline QString
-    Type::classPureBasename(const bool withNamespace)
+    QString Type::classPureBasename(const bool withNamespace)
     {
         return classPureBasenameInternal(typeid (T), withNamespace);
     }
 
     template<typename T>
-    inline QString
-    Type::classPureBasename(const T &type, const bool withNamespace)
+    QString Type::classPureBasename(const T &type, const bool withNamespace)
     {
         /* If you want to obtain a name for the polymorphic type, take care to pass
-            a glvalue as the 'type' argument, the 'this' pointer is a prvalue! */
+           a glvalue as the 'type' argument, the 'this' pointer is a prvalue!
+           Above is whole true, but doesn't make sense as if I passing this or better
+           *this to this function then it will be implicitly converted to the reference
+           for polymorphic types as the parameter is const &.
+           Anyway for polymorphic types pass *this! */
         return classPureBasenameInternal(typeid (type), withNamespace);
     }
 
 } // namespace Orm::Utils
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // UTILS_TYPE_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_UTILS_TYPE_HPP

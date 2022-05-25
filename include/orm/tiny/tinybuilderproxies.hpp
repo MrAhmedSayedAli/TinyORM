@@ -1,19 +1,17 @@
-#ifndef TINYBUILDERPROXIES_HPP
-#define TINYBUILDERPROXIES_HPP
+#pragma once
+#ifndef ORM_TINY_TINYBUILDERPROXIES_HPP
+#define ORM_TINY_TINYBUILDERPROXIES_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
-#include "orm/concepts.hpp"
-#include "orm/ormtypes.hpp"
-#include "orm/utils/attribute.hpp"
+#include <QtSql/QSqlQuery>
 
-class QSqlQuery;
+#include "orm/ormconcepts.hpp"
+#include "orm/tiny/tinytypes.hpp"
+#include "orm/tiny/utils/attribute.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
 
 namespace Orm
 {
@@ -26,20 +24,23 @@ namespace Query
 namespace Tiny
 {
 
-    template<typename Model>
-    class Builder;
-
-    template<typename Model>
-    using TinyBuilder = Builder<Model>;
-
     /*! Contains proxy methods to the QueryBuilder. */
     template<typename Model>
     class BuilderProxies
     {
+        Q_DISABLE_COPY(BuilderProxies)
+
+        /*! Alias for the attribute utils. */
+        using AttributeUtils = Orm::Tiny::Utils::Attribute;
         /*! JoinClause alias. */
         using JoinClause = Orm::Query::JoinClause;
 
     public:
+        /*! Default constructor. */
+        inline BuilderProxies() = default;
+        /*! Default destructor. */
+        inline ~BuilderProxies() = default;
+
         /* Insert, Update, Delete */
         /*! Insert a new record into the database. */
         std::optional<QSqlQuery>
@@ -47,6 +48,10 @@ namespace Tiny
         /*! Insert new records into the database. */
         std::optional<QSqlQuery>
         insert(const QVector<QVector<AttributeItem>> &values) const;
+        /*! Insert new records into the database (multi insert). */
+        std::optional<QSqlQuery>
+        insert(const QVector<QString> &columns, QVector<QVector<QVariant>> values) const;
+
         /*! Insert a new record and get the value of the primary key. */
         quint64 insertGetId(const QVector<AttributeItem> &values,
                             const QString &sequence = "") const;
@@ -57,6 +62,10 @@ namespace Tiny
         /*! Insert new records into the database while ignoring errors. */
         std::tuple<int, std::optional<QSqlQuery>>
         insertOrIgnore(const QVector<QVector<AttributeItem>> &values) const;
+        /*! Insert new records into the database while ignoring errors (multi insert). */
+        std::tuple<int, std::optional<QSqlQuery>>
+        insertOrIgnore(const QVector<QString> &columns,
+                       QVector<QVector<QVariant>> values) const;
 
         /*! Update records in the database. */
         std::tuple<int, QSqlQuery>
@@ -439,14 +448,22 @@ namespace Tiny
     std::optional<QSqlQuery>
     BuilderProxies<Model>::insert(const QVector<AttributeItem> &values) const
     {
-        return toBase().insert(Utils::Attribute::convertVectorToMap(values));
+        return toBase().insert(AttributeUtils::convertVectorToMap(values));
     }
 
     template<typename Model>
     std::optional<QSqlQuery>
     BuilderProxies<Model>::insert(const QVector<QVector<AttributeItem>> &values) const
     {
-        return toBase().insert(Utils::Attribute::convertVectorsToMaps(values));
+        return toBase().insert(AttributeUtils::convertVectorsToMaps(values));
+    }
+
+    template<typename Model>
+    std::optional<QSqlQuery>
+    BuilderProxies<Model>::insert(
+            const QVector<QString> &columns, QVector<QVector<QVariant>> values) const
+    {
+        return toBase().insert(columns, std::move(values));
     }
 
     // FEATURE dilemma primarykey, Model::KeyType vs QVariant silverqx
@@ -455,7 +472,7 @@ namespace Tiny
     BuilderProxies<Model>::insertGetId(const QVector<AttributeItem> &values,
                                        const QString &sequence) const
     {
-        return toBase().insertGetId(Utils::Attribute::convertVectorToMap(values),
+        return toBase().insertGetId(AttributeUtils::convertVectorToMap(values),
                                     sequence);
     }
 
@@ -463,7 +480,7 @@ namespace Tiny
     std::tuple<int, std::optional<QSqlQuery>>
     BuilderProxies<Model>::insertOrIgnore(const QVector<AttributeItem> &values) const
     {
-        return toBase().insertOrIgnore(Utils::Attribute::convertVectorToMap(values));
+        return toBase().insertOrIgnore(AttributeUtils::convertVectorToMap(values));
     }
 
     template<typename Model>
@@ -471,7 +488,15 @@ namespace Tiny
     BuilderProxies<Model>::insertOrIgnore(
             const QVector<QVector<AttributeItem>> &values) const
     {
-        return toBase().insertOrIgnore(Utils::Attribute::convertVectorsToMaps(values));
+        return toBase().insertOrIgnore(AttributeUtils::convertVectorsToMaps(values));
+    }
+
+    template<typename Model>
+    std::tuple<int, std::optional<QSqlQuery>>
+    BuilderProxies<Model>::insertOrIgnore(
+            const QVector<QString> &columns, QVector<QVector<QVariant>> values) const
+    {
+        return toBase().insertOrIgnore(columns, std::move(values));
     }
 
     template<typename Model>
@@ -1430,10 +1455,9 @@ namespace Tiny
         return builder().getQuery();
     }
 
-} // namespace Orm::Tiny
+} // namespace Tiny
 } // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // TINYBUILDERPROXIES_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_TINY_TINYBUILDERPROXIES_HPP

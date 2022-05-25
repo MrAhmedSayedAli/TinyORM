@@ -1,6 +1,6 @@
 #pragma once
-#ifndef RUNTIMEERROR_HPP
-#define RUNTIMEERROR_HPP
+#ifndef ORM_EXCEPTIONS_RUNTIMEERROR_HPP
+#define ORM_EXCEPTIONS_RUNTIMEERROR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
@@ -9,42 +9,42 @@ TINY_SYSTEM_HEADER
 
 #include <stdexcept>
 
-#include "orm/utils/export.hpp"
+#include "orm/exceptions/ormerror.hpp"
+#include "orm/macros/export.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Exceptions
 {
 
-    /*! Runtime exception. */
-    class SHAREDLIB_EXPORT RuntimeError : public std::runtime_error
+    /*! TinyORM Runtime exception. */
+    class SHAREDLIB_EXPORT RuntimeError :
+            public std::runtime_error,
+            public OrmError
     {
     public:
-        // CUR make all this ctors char * noexcept silverqx
         /*! const char * constructor. */
         explicit RuntimeError(const char *message);
         /*! QString constructor. */
         explicit RuntimeError(const QString &message);
+        /*! std::string constructor. */
+        explicit RuntimeError(const std::string &message);
 
         /*! Return exception message as a QString. */
-        const QString &message() const;
+        inline const QString &message() const noexcept;
 
     protected:
-        // BUG FIXIT, this will be pain, verify all the const data member, they prevent generation of default copy/move assignment operators, you can not assign or move to the const data member silverqx
         /*! Exception message. */
-        const QString m_message = what();
+        QString m_message = what();
     };
 
-    inline const QString &RuntimeError::message() const
+    const QString &RuntimeError::message() const noexcept
     {
         return m_message;
     }
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Exceptions
 
-#endif // RUNTIMEERROR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_EXCEPTIONS_RUNTIMEERROR_HPP

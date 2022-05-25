@@ -2,15 +2,25 @@
 
 #include <QRegularExpression>
 
-#include "orm/constants.hpp"
-#include "orm/exceptions/runtimeerror.hpp"
-
-using namespace Orm::Constants;
-
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
+#if !defined(_MSC_VER)
+#  include <memory>
 #endif
+
+#include "orm/constants.hpp"
+#if !defined(_MSC_VER)
+#  include "orm/exceptions/runtimeerror.hpp"
+#endif
+
+using Orm::Constants::ASTERISK_C;
+using Orm::Constants::LT_C;
+using Orm::Constants::SPACE;
+
+#if !defined(_MSC_VER)
+using Orm::Exceptions::RuntimeError;
+#endif
+
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm::Utils
 {
 
@@ -22,28 +32,34 @@ Type::classPureBasename(const std::type_index typeIndex, const bool withNamespac
 
 QString Type::prettyFunction(const QString &function)
 {
+    // CUR regex doesn't catch main, ::main, run<int>, ::run<int>, functions without NS, fixed regex (?(?:.*::)?(\\w+)(?:<.*>)?::)?(\\w+)(?:<.*>)?(?:$|::<lambda) silverqx
     /* I can leave RegEx here because this function is used only during throwing
        exceptions, so there would not be any performance benefit. */
 #ifdef __GNUG__
-    QRegularExpression re(QStringLiteral(
-                              "(?:.* )?(?:.*::)?(\\w+)(?:<.*>)?::(\\w+)\\(.*\\)"));
+    static const QRegularExpression regex(
+                QLatin1String(R"((?:.* )?(?:.*::)?(\w+)(?:<.*>)?::(\w+)\(.*\))"));
 #elif _MSC_VER
-    QRegularExpression re(QStringLiteral(
-                              "(?:.*::)?(\\w+)(?:<.*>)?::(\\w+)(?:$|::<lambda)"));
+    static const QRegularExpression regex(
+                QLatin1String(R"((?:.*::)?(\w+)(?:<.*>)?::(\w+)(?:$|::<lambda))"));
 #else
-    throw Exceptions::RuntimeError(
+    throw RuntimeError(
                 "Unsupported compiler in Utils::Type::prettyFunction().");
 #endif
 
-    const auto match = re.match(function);
+    const auto match = regex.match(function);
 
     // This should never happen, but who knows 🤔
     Q_ASSERT_X(match.hasMatch(), "regex match",
                "Can not get the function name in Utils::Type::prettyFunction().");
-    Q_ASSERT_X(re.captureCount() == 2, "regex match",
+    Q_ASSERT_X(regex.captureCount() == 2, "regex match",
                "Can not get the function name in Utils::Type::prettyFunction().");
 
     return QStringLiteral("%1::%2").arg(match.captured(1), match.captured(2));
+}
+
+bool Type::isTrue(const QString &value)
+{
+    return !value.isEmpty() && value != "0" && value != "false";
 }
 
 QString
@@ -51,6 +67,30 @@ Type::classPureBasenameInternal(const std::type_info &typeInfo, const bool withN
 {
     return classPureBasenameInternal(typeInfo.name(), withNamespace);
 }
+
+#ifdef __GNUG__
+namespace
+{
+    /*! Throw when abi::__cxa_demangle() status < 0. */
+    void throwIfDemangleStatusFailed(int status)
+    {
+        switch (status) {
+        case -1:
+            throw RuntimeError(
+                        "A memory allocation failure occurred in abi::__cxa_demangle().");
+        case -2:
+            throw RuntimeError(
+                        "mangled_name argument for abi::__cxa_demangle() is not a valid "
+                        "name under the C++ ABI mangling rules.");
+        case -3:
+            throw RuntimeError(
+                        "One of the arguments for abi::__cxa_demangle() is invalid.");
+        default:
+            break;
+        }
+    }
+} // namespace
+#endif
 
 QString
 Type::classPureBasenameInternal(const char *typeName, const bool withNamespace)
@@ -60,17 +100,17 @@ Type::classPureBasenameInternal(const char *typeName, const bool withNamespace)
 #elif __GNUG__
     // Demangle a type name
     int status = 0;
-    const auto typeNameDemangled_ = abi::__cxa_demangle(typeName, nullptr, nullptr,
-                                                        &status);
-    const QString typeNameDemangled(typeNameDemangled_);
-    // CUR check by valgrind silverqx
-    free(typeNameDemangled_);
+    std::unique_ptr<char, decltype (std::free) &> typeNameDemangled_(
+        abi::__cxa_demangle(typeName, nullptr, nullptr, &status), std::free);
 
-    // CUR throw on status != 0 silverqx
+    // Throw when abi::__cxa_demangle() status < 0
+    throwIfDemangleStatusFailed(status);
+
+    const QString typeNameDemangled(typeNameDemangled_.get());
 
     return classPureBasenameGcc(typeNameDemangled, withNamespace);
 #else
-    throw Exceptions::RuntimeError(
+    throw RuntimeError(
                 "Unsupported compiler in Utils::Type::classPureBasenameInternal().");
 #endif
 }
@@ -84,24 +124,28 @@ Type::classPureBasenameMsvc(const QString &className, const bool withNamespace)
     };
 
     // Find the beginning of the class name
-    auto itBegin = className.cbegin();
+    const auto *itBegin = className.cbegin();
 
     // Include the namespace in the result
     if (withNamespace)
         itBegin += findBeginWithoutNS();
 
-    // Doesn't contain the namespace
-    else if (qptrdiff toBegin = className.lastIndexOf(QStringLiteral("::"));
+    // Do not include the namespace in the result
+    // Block needed to pass clang-tidy bugprone-branch-clone
+    else {
+        // Doesn't contain the namespace
+        if (qptrdiff toBegin = className.lastIndexOf(QStringLiteral("::"));
              toBegin == -1
-    )
-        itBegin += findBeginWithoutNS();
+        )
+            itBegin += findBeginWithoutNS();
 
-    // Have the namespace and :: found, +2 to point after
-    else
-        itBegin += toBegin + 2;
+        // Have the namespace (:: found), +2 to point after
+        else
+            itBegin += toBegin + 2;
+    }
 
     // Find the end of the class name
-    auto itEnd = std::find_if(itBegin, className.cend(),
+    const auto *itEnd = std::find_if(itBegin, className.cend(),
                               [](const QChar ch)
     {
         // The class name can end with < or space, anything else
@@ -115,16 +159,18 @@ QString
 Type::classPureBasenameGcc(const QString &className, const bool withNamespace)
 {
     // Find the beginning of the class name
-    auto itBegin = className.cbegin();
+    const auto *itBegin = className.cbegin();
 
     if (!withNamespace)
         // Have the namespace and :: found, +2 to point after
-        if (qptrdiff toBegin = className.lastIndexOf(QStringLiteral("::")); toBegin != -1)
+        if (qptrdiff toBegin = className.lastIndexOf(QStringLiteral("::"));
+            toBegin != -1
+        )
             itBegin += toBegin + 2;
 
     // Find the end of the class name
-    auto itEnd = std::find_if(itBegin, className.cend(),
-                              [](const QChar ch)
+    const auto *itEnd = std::find_if(itBegin, className.cend(),
+                                     [](const QChar ch)
     {
         // The class name can end with <, * or space, anything else
         return ch == LT_C || ch == SPACE || ch == ASTERISK_C;
@@ -133,7 +179,6 @@ Type::classPureBasenameGcc(const QString &className, const bool withNamespace)
     return QStringView(itBegin, itEnd).toString();
 }
 
-} // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+} // namespace Orm::Utils
+
+TINYORM_END_COMMON_NAMESPACE

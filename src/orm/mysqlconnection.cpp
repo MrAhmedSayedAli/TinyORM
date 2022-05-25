@@ -1,15 +1,21 @@
 #include "orm/mysqlconnection.hpp"
 
+#ifdef TINYORM_MYSQL_PING
+#  include <QDebug>
+#endif
 #include <QtSql/QSqlDriver>
 
 #ifdef TINYORM_MYSQL_PING
 #  ifdef __MINGW32__
-#    include "mysql/errmsg.h"
+#    include <mysql/errmsg.h>
 #  endif
-#  ifdef _MSC_VER
-#    include "mysql.h"
-#  elif defined(__GNUG__) || defined(__MINGW32__)
-#    include "mysql/mysql.h"
+#  if __has_include(<mysql/mysql.h>)
+#    include <mysql/mysql.h>
+#  elif __has_include(<mysql.h>)
+#    include <mysql.h>
+#  else
+#    error Can not find <mysql.h> header file, install the MySQL C client library or \
+disable TINYORM_MYSQL_PING preprocessor directive.
 #  endif
 #endif
 
@@ -18,10 +24,8 @@
 #include "orm/schema/grammars/mysqlschemagrammar.hpp"
 #include "orm/schema/mysqlschemabuilder.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm
 {
 
@@ -46,7 +50,7 @@ std::unique_ptr<SchemaBuilder> MySqlConnection::getSchemaBuilder()
     if (!m_schemaGrammar)
         useDefaultSchemaGrammar();
 
-    return std::make_unique<Schema::MySqlSchemaBuilder>(*this);
+    return std::make_unique<SchemaNs::MySqlSchemaBuilder>(*this);
 }
 
 bool MySqlConnection::isMaria()
@@ -76,7 +80,7 @@ bool MySqlConnection::pingDatabase()
 
     const auto mysqlPing = [getMysqlHandle]() -> bool
     {
-        auto mysqlHandle = getMysqlHandle();
+        auto *mysqlHandle = getMysqlHandle();
         if (mysqlHandle == nullptr)
             return false;
 
@@ -90,15 +94,15 @@ bool MySqlConnection::pingDatabase()
             qWarning("mysql_ping() returned : CR_COMMANDS_OUT_OF_SYNC(%ud)", errNo);
             return true;
         }
-        else if (ping == 0)
+
+        if (ping == 0)
             return true;
-        else if (ping != 0)
+        if (ping != 0)
             return false;
-        else {
-            qWarning() << "Unknown behavior during mysql_ping(), this should never "
-                          "happen :/";
-            return false;
-        }
+
+        qWarning() << "Unknown behavior during mysql_ping(), this should never "
+                      "happen :/";
+        return false;
     };
 
     if (qtConnection.isOpen() && mysqlPing()) {
@@ -142,7 +146,7 @@ std::unique_ptr<QueryGrammar> MySqlConnection::getDefaultQueryGrammar() const
 std::unique_ptr<SchemaGrammar> MySqlConnection::getDefaultSchemaGrammar() const
 {
     // Ownership of a unique_ptr()
-    auto grammar = std::make_unique<Schema::Grammars::MySqlSchemaGrammar>();
+    auto grammar = std::make_unique<SchemaNs::Grammars::MySqlSchemaGrammar>();
 
     withTablePrefix(*grammar);
 
@@ -155,6 +159,5 @@ std::unique_ptr<QueryProcessor> MySqlConnection::getDefaultPostProcessor() const
 }
 
 } // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
+
+TINYORM_END_COMMON_NAMESPACE

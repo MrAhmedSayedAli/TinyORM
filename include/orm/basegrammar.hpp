@@ -1,29 +1,22 @@
 #pragma once
-#ifndef BASEGRAMMAR_HPP
-#define BASEGRAMMAR_HPP
+#ifndef ORM_BASEGRAMMAR_HPP
+#define ORM_BASEGRAMMAR_HPP
 
 #include "orm/macros/systemheader.hpp"
 TINY_SYSTEM_HEADER
 
+#include "orm/ormconcepts.hpp"
 #include "orm/ormtypes.hpp"
-#include "orm/utils/export.hpp"
+#include "orm/utils/container.hpp"
 
-#ifdef TINYORM_COMMON_NAMESPACE
-namespace TINYORM_COMMON_NAMESPACE
-{
-#endif
+TINYORM_BEGIN_COMMON_NAMESPACE
+
 namespace Orm
 {
 namespace Query
 {
     class Expression;
-}
-
-    /*! QString container concept (QStringList or QVector<QString>). */
-    template<typename T>
-    concept ColumnContainer = std::convertible_to<T, const QStringList &> ||
-                              std::convertible_to<T, const QVector<QString> &> ||
-                              std::convertible_to<T, const QVector<Column> &>;
+} // namespace Query
 
     /*! Concept for container passed to the parametrize() method (QVariantMap
         or QVector<QString>). */
@@ -36,12 +29,13 @@ namespace Query
     {
         Q_DISABLE_COPY(BaseGrammar)
 
+    protected:
         /*! Expression alias. */
         using Expression = Query::Expression;
 
     public:
         /*! Default constructor. */
-        BaseGrammar() = default;
+        inline BaseGrammar() = default;
         /*! Virtual destructor. */
         inline virtual ~BaseGrammar() = default;
 
@@ -77,7 +71,7 @@ namespace Query
         QVariant getValue(const Expression &expression) const;
 
         /*! Get the grammar's table prefix. */
-        QString getTablePrefix() const;
+        inline QString getTablePrefix() const;
         /*! Set the grammar's table prefix. */
         BaseGrammar &setTablePrefix(const QString &prefix);
 
@@ -85,9 +79,12 @@ namespace Query
         QString unqualifyColumn(const QString &column) const;
 
     protected:
-        /*! Convert the vector of column names into a delimited string. */
+        /*! Convert the vector of column names into a wrapped comma delimited string. */
         template<ColumnContainer T>
-        QString columnize(const T &columns) const;
+        QString columnize(T &&columns) const;
+        /*! Convert the vector of column names into a comma delimited string. */
+        template<ColumnContainer T>
+        QString columnizeWithoutWrap(T &&columns) const;
 
         /*! Create query parameter place-holders for the vector. */
         template<Parametrize Container>
@@ -112,20 +109,24 @@ namespace Query
 
         // FEATURE qt6, use everywhere QLatin1String("") instead of = "", BUT Qt6 has char8_t ctor, so u"" can be used, I will wait with this problem silverqx
         /*! The grammar table prefix. */
-        QString m_tablePrefix = "";
-
-    private:
-        /*! Convert the vector of column names into a delimited string. */
-        QString columnizeInternal(const QVector<QString> &columns) const;
+        QString m_tablePrefix {};
     };
 
     template<ColumnContainer T>
-    inline QString BaseGrammar::columnize(const T &columns) const
+    QString BaseGrammar::columnize(T &&columns) const
     {
-        return columnizeInternal(wrapArray(columns));
+        return columnizeWithoutWrap(wrapArray(std::forward<T>(columns)));
     }
 
-    inline QString BaseGrammar::getTablePrefix() const
+    /* I leave this method here because it has meaningful name, not make it inline to avoid
+       utils/container.hpp include in the header file. */
+    template<ColumnContainer T>
+    QString BaseGrammar::columnizeWithoutWrap(T &&columns) const
+    {
+        return Utils::Container::join(std::forward<T>(columns));
+    }
+
+    QString BaseGrammar::getTablePrefix() const
     {
         return m_tablePrefix;
     }
@@ -171,12 +172,11 @@ namespace Query
             compiledParameters << parameter(value);
 
         // CUR1 QString allocation 😟 solve everywhere 😭 silverqx
-        return compiledParameters.join(COMMA);
+        return columnizeWithoutWrap(compiledParameters);
     }
 
 } // namespace Orm
-#ifdef TINYORM_COMMON_NAMESPACE
-} // namespace TINYORM_COMMON_NAMESPACE
-#endif
 
-#endif // BASEGRAMMAR_HPP
+TINYORM_END_COMMON_NAMESPACE
+
+#endif // ORM_BASEGRAMMAR_HPP

@@ -1,14 +1,20 @@
 #pragma once
-#ifndef PHONE_HPP
-#define PHONE_HPP
+#ifndef MODELS_PHONE_HPP
+#define MODELS_PHONE_HPP
 
-#include <orm/tiny/model.hpp>
+#include "orm/tiny/model.hpp"
+
+#include "models/user.hpp"
+
+namespace Models
+{
 
 using Orm::Tiny::Model;
 using Orm::Tiny::Relations::BelongsTo;
 
 class User;
 
+// NOLINTNEXTLINE(misc-no-recursion)
 class Phone final : public Model<Phone, User>
 {
     friend Model;
@@ -31,8 +37,10 @@ private:
         {"user", [](auto &v) { v(&Phone::user); }},
     };
 
-    /*! Indicates if the model should be timestamped. */
+    /*! Indicates whether the model should be timestamped. */
     bool u_timestamps = false;
 };
 
-#endif // PHONE_HPP
+} // namespace Models
+
+#endif // MODELS_PHONE_HPP

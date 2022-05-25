@@ -4,14 +4,15 @@
   "version-semver": "0.1.0",
   "description": "c++ orm library for the Qt framwork",
   "homepage": "https://github.com/silverqx/TinyORM",
-  "documentation": "https://silverqx.github.io/TinyORM/",
+  "documentation": "https://www.tinyorm.org",
   "maintainers": "Silver Zachara <silver.zachara@gmail.com>",
   "supports": "!(uwp | arm | android | emscripten)",
   "dependencies": [
-    "range-v3"
+    "range-v3",
+    "tabulate"
   ],
   "features": {
-    "mysql-ping": {
+    "mysqlping": {
       "description": "Install a MySQL client library to support the mysql_ping() used by MySqlConnection::pingDatabase()",
       "dependencies": [
         "libmysql"
